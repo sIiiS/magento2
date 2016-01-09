@@ -109,6 +109,13 @@ class Page extends AbstractDb
             $object->setData($field, $this->dateTime->formatDate($value));
         }
 
+        $str = $object->getData('identifier');
+        $identifier = preg_replace('#()*!~-=+|\/[^0-9a-z%]+#i', '-', $str);
+        $identifier = str_replace(' ', '-', $identifier);
+        $identifier = mb_strtolower($identifier,'UTF-8');
+        $identifier = trim($identifier, '-');
+        $object->setData('identifier', $identifier);
+
         if (!$this->isValidPageIdentifier($object)) {
             throw new LocalizedException(
                 __('The page URL key contains capital letters or disallowed symbols.')
