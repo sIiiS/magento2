@@ -20,8 +20,9 @@ class TranslitUrl extends Translit
      */
     public function filter($string)
     {
-        $string = preg_replace('#[^0-9a-z]+#i', '-', parent::filter($string));
-        $string = strtolower($string);
+        $string = preg_replace('#()*!~-=+|\/[^0-9a-z%]+#i', '-', $string);
+        $string = str_replace(' ', '-', $string);
+        $string = mb_strtolower($string,'UTF-8');
         $string = trim($string, '-');
 
         return $string;
