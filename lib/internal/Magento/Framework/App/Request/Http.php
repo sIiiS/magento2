@@ -140,7 +140,7 @@ class Http extends Request implements RequestInterface, RequestSafetyInterface
     public function setPathInfo($pathInfo = null)
     {
         if ($pathInfo === null) {
-            $requestUri = $this->getRequestUri();
+            $requestUri = urldecode($this->getRequestUri());
             if ('/' === $requestUri) {
                 return $this;
             }
