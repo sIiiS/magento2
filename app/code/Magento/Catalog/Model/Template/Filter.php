@@ -1,41 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Catalog
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
+// @codingStandardsIgnoreFile
 
 /**
  * Catalog Template Filter Model
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  * @todo        Needs to be reimplemented to get rid of the copypasted methods
  */
 namespace Magento\Catalog\Model\Template;
 
-class Filter extends \Magento\Filter\Template
+class Filter extends \Magento\Framework\Filter\Template
 {
     /**
      * Use absolute links flag
@@ -52,31 +31,31 @@ class Filter extends \Magento\Filter\Template
     protected $_useSessionInUrl = false;
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrl;
+    protected $_assetRepo;
 
     /**
      * Store manager
      *
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @param \Magento\Stdlib\String $string
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\View\Url $viewUrl
+     * @param \Magento\Framework\Stdlib\StringUtils $string
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\View\Asset\Repository $assetRepo
      * @param array $variables
      */
     public function __construct(
-        \Magento\Stdlib\String $string,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\View\Url $viewUrl,
-        $variables = array()
+        \Magento\Framework\Stdlib\StringUtils $string,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
+        $variables = []
     ) {
         $this->_storeManager = $storeManager;
-        $this->_viewUrl = $viewUrl;
+        $this->_assetRepo = $assetRepo;
         parent::__construct($string, $variables);
     }
 
@@ -114,10 +93,22 @@ class Filter extends \Magento\Filter\Template
      */
     public function viewDirective($construction)
     {
-        $params = $this->_getIncludeParameters($construction[2]);
+        $params = $this->getParameters($construction[2]);
         $params['_absolute'] = $this->_useAbsoluteLinks;
-
-        $url = $this->_viewUrl->getViewFileUrl($params['url'], $params);
+        /**
+         * @bug: the "_absolute" key is not supported by underlying services
+         * probably this happened because of multitude of refactorings in past
+         * The original intent of _absolute parameter was to simply append specified path to a base URL
+         * bypassing any kind of processing.
+         * For example, normally you would use {{view url="css/styles.css"}} directive which would automatically resolve
+         * into something like http://example.com/pub/static/area/theme/en_US/css/styles.css
+         * But with _absolute, the expected behavior is this: {{view url="favicon.ico" _absolute=true}} should resolve
+         * into something like http://example.com/favicon.ico
+         *
+         * To fix the issue, it is better not to maintain the _absolute parameter anymore in undrelying services,
+         * but instead just create a different type of directive, for example {{baseUrl path="favicon.ico"}}
+         */
+        $url = $this->_assetRepo->getUrlWithParams($params['url'], $params);
 
         return $url;
     }
@@ -131,8 +122,8 @@ class Filter extends \Magento\Filter\Template
      */
     public function mediaDirective($construction)
     {
-        $params = $this->_getIncludeParameters($construction[2]);
-        return $this->_storeManager->getStore()->getBaseUrl(\Magento\Core\Model\Store::URL_TYPE_MEDIA) . $params['url'];
+        $params = $this->getParameters($construction[2]);
+        return $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . $params['url'];
     }
 
     /**
@@ -145,9 +136,9 @@ class Filter extends \Magento\Filter\Template
      */
     public function storeDirective($construction)
     {
-        $params = $this->_getIncludeParameters($construction[2]);
+        $params = $this->getParameters($construction[2]);
         if (!isset($params['_query'])) {
-            $params['_query'] = array();
+            $params['_query'] = [];
         }
         foreach ($params as $key => $value) {
             if (strpos($key, '_query_') === 0) {

@@ -1,29 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Rule
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 
 /**
  * Abstract Rule condition data model
@@ -32,9 +11,14 @@
  */
 namespace Magento\Rule\Model\Condition;
 
-abstract class AbstractCondition
-    extends \Magento\Object
-    implements \Magento\Rule\Model\Condition\ConditionInterface
+use Magento\Framework\Data\Form;
+use Magento\Framework\Data\Form\Element\AbstractElement;
+
+/**
+ * @SuppressWarnings(PHPMD.ExcessivePublicCount)
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ */
+abstract class AbstractCondition extends \Magento\Framework\DataObject implements ConditionInterface
 {
     /**
      * Defines which operators will be available for this condition
@@ -57,33 +41,39 @@ abstract class AbstractCondition
 
     /**
      * List of input types for values which should be array
-     * @var array
+     * @var string[]
      */
-    protected $_arrayInputTypes = array();
+    protected $_arrayInputTypes = [];
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrl;
+    protected $_assetRepo;
 
     /**
-     * @var \Magento\Core\Model\LocaleInterface
+     * @var \Magento\Framework\Stdlib\DateTime\TimezoneInterface
      */
-    protected $_locale;
+    protected $_localeDate;
 
     /**
-     * @var \Magento\View\LayoutInterface
+     * @var \Magento\Framework\View\LayoutInterface
      */
     protected $_layout;
 
     /**
-     * @param \Magento\Rule\Model\Condition\Context $context
+     * Base name for hidden elements
+     * @var string
+     */
+    protected $elementName = 'rule';
+
+    /**
+     * @param Context $context
      * @param array $data
      */
-    public function __construct(\Magento\Rule\Model\Condition\Context $context, array $data = array())
+    public function __construct(Context $context, array $data = [])
     {
-        $this->_viewUrl = $context->getViewUrl();
-        $this->_locale = $context->getLocale();
+        $this->_assetRepo = $context->getAssetRepository();
+        $this->_localeDate = $context->getLocaleDate();
         $this->_layout = $context->getLayout();
 
         parent::__construct($data);
@@ -114,16 +104,16 @@ abstract class AbstractCondition
     public function getDefaultOperatorInputByType()
     {
         if (null === $this->_defaultOperatorInputByType) {
-            $this->_defaultOperatorInputByType = array(
-                'string'      => array('==', '!=', '>=', '>', '<=', '<', '{}', '!{}', '()', '!()'),
-                'numeric'     => array('==', '!=', '>=', '>', '<=', '<', '()', '!()'),
-                'date'        => array('==', '>=', '<='),
-                'select'      => array('==', '!='),
-                'boolean'     => array('==', '!='),
-                'multiselect' => array('{}', '!{}', '()', '!()'),
-                'grid'        => array('()', '!()'),
-            );
-            $this->_arrayInputTypes = array('multiselect', 'grid');
+            $this->_defaultOperatorInputByType = [
+                'string' => ['==', '!=', '>=', '>', '<=', '<', '{}', '!{}', '()', '!()'],
+                'numeric' => ['==', '!=', '>=', '>', '<=', '<', '()', '!()'],
+                'date' => ['==', '>=', '<='],
+                'select' => ['==', '!='],
+                'boolean' => ['==', '!='],
+                'multiselect' => ['{}', '!{}', '()', '!()'],
+                'grid' => ['()', '!()'],
+            ];
+            $this->_arrayInputTypes = ['multiselect', 'grid'];
         }
         return $this->_defaultOperatorInputByType;
     }
@@ -137,22 +127,25 @@ abstract class AbstractCondition
     public function getDefaultOperatorOptions()
     {
         if (null === $this->_defaultOperatorOptions) {
-            $this->_defaultOperatorOptions = array(
-                '=='  => __('is'),
-                '!='  => __('is not'),
-                '>='  => __('equals or greater than'),
-                '<='  => __('equals or less than'),
-                '>'   => __('greater than'),
-                '<'   => __('less than'),
-                '{}'  => __('contains'),
+            $this->_defaultOperatorOptions = [
+                '==' => __('is'),
+                '!=' => __('is not'),
+                '>=' => __('equals or greater than'),
+                '<=' => __('equals or less than'),
+                '>' => __('greater than'),
+                '<' => __('less than'),
+                '{}' => __('contains'),
                 '!{}' => __('does not contain'),
-                '()'  => __('is one of'),
-                '!()' => __('is not one of')
-            );
+                '()' => __('is one of'),
+                '!()' => __('is not one of'),
+            ];
         }
         return $this->_defaultOperatorOptions;
     }
 
+    /**
+     * @return Form
+     */
     public function getForm()
     {
         return $this->getRule()->getForm();
@@ -163,16 +156,46 @@ abstract class AbstractCondition
      * @return array
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function asArray(array $arrAttributes = array())
+    public function asArray(array $arrAttributes = [])
     {
-        $out = array(
+        $out = [
             'type' => $this->getType(),
             'attribute' => $this->getAttribute(),
             'operator' => $this->getOperator(),
             'value' => $this->getValue(),
             'is_value_processed' => $this->getIsValueParsed(),
-        );
+        ];
         return $out;
+    }
+
+    /**
+     * Get tables to join
+     *
+     * @return array
+     */
+    public function getTablesToJoin()
+    {
+        return [];
+    }
+
+    /**
+     * Get value to bind
+     *
+     * @return array|float|int|mixed|string
+     */
+    public function getBindArgumentValue()
+    {
+        return $this->getValueParsed();
+    }
+
+    /**
+     * Get field by attribute
+     *
+     * @return string
+     */
+    public function getMappedSqlField()
+    {
+        return $this->getAttribute();
     }
 
     /**
@@ -180,16 +203,25 @@ abstract class AbstractCondition
      */
     public function asXml()
     {
-        $xml = "<type>" . $this->getType() . "</type>"
-            . "<attribute>" . $this->getAttribute() . "</attribute>"
-            . "<operator>" . $this->getOperator() . "</operator>"
-            . "<value>" . $this->getValue() . "</value>";
+        $xml = "<type>" .
+            $this->getType() .
+            "</type>" .
+            "<attribute>" .
+            $this->getAttribute() .
+            "</attribute>" .
+            "<operator>" .
+            $this->getOperator() .
+            "</operator>" .
+            "<value>" .
+            $this->getValue() .
+            "</value>";
         return $xml;
     }
 
     /**
      * @param array $arr
      * @return $this
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function loadArray($arr)
     {
@@ -228,7 +260,7 @@ abstract class AbstractCondition
      */
     public function getAttributeOptions()
     {
-        return array();
+        return [];
     }
 
     /**
@@ -236,9 +268,9 @@ abstract class AbstractCondition
      */
     public function getAttributeSelectOptions()
     {
-        $opt = array();
+        $opt = [];
         foreach ($this->getAttributeOption() as $key => $value) {
-            $opt[] = array('value' => $key, 'label' => $value);
+            $opt[] = ['value' => $key, 'label' => $value];
         }
         return $opt;
     }
@@ -282,11 +314,11 @@ abstract class AbstractCondition
     public function getOperatorSelectOptions()
     {
         $type = $this->getInputType();
-        $opt = array();
+        $opt = [];
         $operatorByType = $this->getOperatorByInputType();
         foreach ($this->getOperatorOption() as $key => $value) {
             if (!$operatorByType || in_array($key, $operatorByType[$type])) {
-                $opt[] = array('value' => $key, 'label' => $value);
+                $opt[] = ['value' => $key, 'label' => $value];
             }
         }
         return $opt;
@@ -305,7 +337,7 @@ abstract class AbstractCondition
      */
     public function loadValueOptions()
     {
-        $this->setValueOption(array());
+        $this->setValueOption([]);
         return $this;
     }
 
@@ -314,12 +346,12 @@ abstract class AbstractCondition
      */
     public function getValueSelectOptions()
     {
-        $valueOption = $opt = array();
+        $valueOption = $opt = [];
         if ($this->hasValueOption()) {
             $valueOption = (array)$this->getValueOption();
         }
         foreach ($valueOption as $key => $value) {
-            $opt[] = array('value' => $key, 'label' => $value);
+            $opt[] = ['value' => $key, 'label' => $value];
         }
         return $opt;
     }
@@ -333,7 +365,10 @@ abstract class AbstractCondition
     {
         if (!$this->hasValueParsed()) {
             $value = $this->getData('value');
-            if ($this->isArrayOperatorType() && is_string($value)) {
+            if (is_array($value) && isset($value[0]) && is_string($value[0])) {
+                $value = $value[0];
+            }
+            if ($this->isArrayOperatorType() && $value) {
                 $value = preg_split('#\s*[,;]\s*#', $value, null, PREG_SPLIT_NO_EMPTY);
             }
             $this->setValueParsed($value);
@@ -362,8 +397,7 @@ abstract class AbstractCondition
         if ($this->getInputType() == 'date' && !$this->getIsValueParsed()) {
             // date format intentionally hard-coded
             $this->setValue(
-                $this->_locale->date($this->getData('value'),
-                \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT, null, false)->toString(\Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT)
+                (new \DateTime($this->getData('value')))->format('Y-m-d H:i:s')
             );
             $this->setIsValueParsed(true);
         }
@@ -372,23 +406,24 @@ abstract class AbstractCondition
 
     /**
      * @return array|string
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function getValueName()
     {
         $value = $this->getValue();
-        if (is_null($value) || '' === $value) {
+        if ($value === null || '' === $value) {
             return '...';
         }
 
         $options = $this->getValueSelectOptions();
-        $valueArr = array();
+        $valueArr = [];
         if (!empty($options)) {
             foreach ($options as $option) {
                 if (is_array($value)) {
                     if (in_array($option['value'], $value)) {
                         $valueArr[] = $option['label'];
                     }
-                } else {
+                } elseif (isset($option['value'])) {
                     if (is_array($option['value'])) {
                         foreach ($option['value'] as $optionValue) {
                             if ($optionValue['value'] == $value) {
@@ -415,12 +450,7 @@ abstract class AbstractCondition
      */
     public function getNewChildSelectOptions()
     {
-        return array(
-            array(
-                'value' => '',
-                'label' => __('Please choose a condition to add.')
-            )
-        );
+        return [['value' => '', 'label' => __('Please choose a condition to add.')]];
     }
 
     /**
@@ -436,12 +466,12 @@ abstract class AbstractCondition
      */
     public function asHtml()
     {
-        $html = $this->getTypeElementHtml()
-           . $this->getAttributeElementHtml()
-           . $this->getOperatorElementHtml()
-           . $this->getValueElementHtml()
-           . $this->getRemoveLinkHtml()
-           . $this->getChooserContainerHtml();
+        $html = $this->getTypeElementHtml() .
+            $this->getAttributeElementHtml() .
+            $this->getOperatorElementHtml() .
+            $this->getValueElementHtml() .
+            $this->getRemoveLinkHtml() .
+            $this->getChooserContainerHtml();
         return $html;
     }
 
@@ -454,21 +484,34 @@ abstract class AbstractCondition
         return $html;
     }
 
+    /**
+     * @return AbstractElement
+     */
     public function getTypeElement()
     {
-        return $this->getForm()->addField($this->getPrefix() . '__' . $this->getId() . '__type', 'hidden', array(
-            'name'    => 'rule[' . $this->getPrefix() . '][' . $this->getId() . '][type]',
-            'value'   => $this->getType(),
-            'no_span' => true,
-            'class'   => 'hidden',
-        ));
+        return $this->getForm()->addField(
+            $this->getPrefix() . '__' . $this->getId() . '__type',
+            'hidden',
+            [
+                'name' => $this->elementName . '[' . $this->getPrefix() . '][' . $this->getId() . '][type]',
+                'value' => $this->getType(),
+                'no_span' => true,
+                'class' => 'hidden'
+            ]
+        );
     }
 
+    /**
+     * @return string
+     */
     public function getTypeElementHtml()
     {
         return $this->getTypeElement()->getHtml();
     }
 
+    /**
+     * @return $this
+     */
     public function getAttributeElement()
     {
         if (null === $this->getAttribute()) {
@@ -477,12 +520,18 @@ abstract class AbstractCondition
                 break;
             }
         }
-        return $this->getForm()->addField($this->getPrefix() . '__' . $this->getId() . '__attribute', 'select', array(
-            'name' => 'rule[' . $this->getPrefix() . '][' . $this->getId() . '][attribute]',
-            'values' => $this->getAttributeSelectOptions(),
-            'value' => $this->getAttribute(),
-            'value_name' => $this->getAttributeName(),
-        ))->setRenderer($this->_layout->getBlockSingleton('Magento\Rule\Block\Editable'));
+        return $this->getForm()->addField(
+            $this->getPrefix() . '__' . $this->getId() . '__attribute',
+            'select',
+            [
+                'name' => $this->elementName . '[' . $this->getPrefix() . '][' . $this->getId() . '][attribute]',
+                'values' => $this->getAttributeSelectOptions(),
+                'value' => $this->getAttribute(),
+                'value_name' => $this->getAttributeName()
+            ]
+        )->setRenderer(
+            $this->_layout->getBlockSingleton('Magento\Rule\Block\Editable')
+        );
     }
 
     /**
@@ -497,26 +546,30 @@ abstract class AbstractCondition
      * Retrieve Condition Operator element Instance
      * If the operator value is empty - define first available operator value as default
      *
-     * @return \Magento\Data\Form\Element\Select
+     * @return \Magento\Framework\Data\Form\Element\Select
      */
     public function getOperatorElement()
     {
         $options = $this->getOperatorSelectOptions();
-        if (is_null($this->getOperator())) {
+        if ($this->getOperator() === null) {
             foreach ($options as $option) {
                 $this->setOperator($option['value']);
                 break;
             }
         }
 
-        $elementId   = sprintf('%s__%s__operator', $this->getPrefix(), $this->getId());
-        $elementName = sprintf('rule[%s][%s][operator]', $this->getPrefix(), $this->getId());
-        $element     = $this->getForm()->addField($elementId, 'select', array(
-            'name'          => $elementName,
-            'values'        => $options,
-            'value'         => $this->getOperator(),
-            'value_name'    => $this->getOperatorName(),
-        ));
+        $elementId = sprintf('%s__%s__operator', $this->getPrefix(), $this->getId());
+        $elementName = sprintf($this->elementName . '[%s][%s][operator]', $this->getPrefix(), $this->getId());
+        $element = $this->getForm()->addField(
+            $elementId,
+            'select',
+            [
+                'name' => $elementName,
+                'values' => $options,
+                'value' => $this->getOperator(),
+                'value_name' => $this->getOperatorName()
+            ]
+        );
         $element->setRenderer($this->_layout->getBlockSingleton('Magento\Rule\Block\Editable'));
 
         return $element;
@@ -533,7 +586,7 @@ abstract class AbstractCondition
     /**
      * Value element type will define renderer for condition value element
      *
-     * @see \Magento\Data\Form\Element
+     * @see \Magento\Framework\Data\Form\Element
      * @return string
      */
     public function getValueElementType()
@@ -552,25 +605,31 @@ abstract class AbstractCondition
         return $this->_layout->getBlockSingleton('Magento\Rule\Block\Editable');
     }
 
+    /**
+     * @return $this
+     */
     public function getValueElement()
     {
-        $elementParams = array(
-            'name'               => 'rule[' . $this->getPrefix() . '][' . $this->getId() . '][value]',
-            'value'              => $this->getValue(),
-            'values'             => $this->getValueSelectOptions(),
-            'value_name'         => $this->getValueName(),
+        $elementParams = [
+            'name' => $this->elementName . '[' . $this->getPrefix() . '][' . $this->getId() . '][value]',
+            'value' => $this->getValue(),
+            'values' => $this->getValueSelectOptions(),
+            'value_name' => $this->getValueName(),
             'after_element_html' => $this->getValueAfterElementHtml(),
-            'explicit_apply'     => $this->getExplicitApply(),
-        );
+            'explicit_apply' => $this->getExplicitApply(),
+        ];
         if ($this->getInputType() == 'date') {
             // date format intentionally hard-coded
-            $elementParams['input_format'] = \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
-            $elementParams['date_format']  = \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
+            $elementParams['input_format'] = \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
+            $elementParams['date_format'] = \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
         }
-        return $this->getForm()->addField($this->getPrefix() . '__' . $this->getId() . '__value',
+        return $this->getForm()->addField(
+            $this->getPrefix() . '__' . $this->getId() . '__value',
             $this->getValueElementType(),
             $elementParams
-        )->setRenderer($this->getValueElementRenderer());
+        )->setRenderer(
+            $this->getValueElementRenderer()
+        );
     }
 
     /**
@@ -586,9 +645,8 @@ abstract class AbstractCondition
      */
     public function getAddLinkHtml()
     {
-        $src = $this->_viewUrl->getViewFileUrl('images/rule_component_add.gif');
-        $html = '<img src="' . $src . '" class="rule-param-add v-middle" alt="" title="'
-            . __('Add') . '"/>';
+        $src = $this->_assetRepo->getUrl('images/rule_component_add.gif');
+        $html = '<img src="' . $src . '" class="rule-param-add v-middle" alt="" title="' . __('Add') . '"/>';
         return $html;
     }
 
@@ -597,10 +655,10 @@ abstract class AbstractCondition
      */
     public function getRemoveLinkHtml()
     {
-        $src = $this->_viewUrl->getViewFileUrl('images/rule_component_remove.gif');
-        $html = ' <span class="rule-param"><a href="javascript:void(0)" class="rule-param-remove" title="'
-            . __('Remove') . '"><img src="' . $src
-            . '"  alt="" class="v-middle" /></a></span>';
+        $src = $this->_assetRepo->getUrl('images/rule_component_remove.gif');
+        $html = ' <span class="rule-param"><a href="javascript:void(0)" class="rule-param-remove" title="' . __(
+            'Remove'
+        ) . '"><img src="' . $src . '"  alt="" class="v-middle" /></a></span>';
         return $html;
     }
 
@@ -641,8 +699,11 @@ abstract class AbstractCondition
     /**
      * Validate product attribute value for condition
      *
-     * @param   mixed $validatedValue product attribute value
+     * @param   object|array|int|string|float|bool $validatedValue product attribute value
      * @return  bool
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function validateAttribute($validatedValue)
     {
@@ -708,7 +769,7 @@ abstract class AbstractCondition
             case '!{}':
                 if (is_scalar($validatedValue) && is_array($value)) {
                     foreach ($value as $item) {
-                        if (stripos($validatedValue, $item) !== false) {
+                        if (stripos($validatedValue, (string)$item) !== false) {
                             $result = true;
                             break;
                         }
@@ -732,7 +793,7 @@ abstract class AbstractCondition
             case '()':
             case '!()':
                 if (is_array($validatedValue)) {
-                    $result = count(array_intersect($validatedValue, (array)$value))>0;
+                    $result = count(array_intersect($validatedValue, (array)$value)) > 0;
                 } else {
                     $value = (array)$value;
                     foreach ($value as $item) {
@@ -774,12 +835,17 @@ abstract class AbstractCondition
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Model\AbstractModel $model
      * @return bool
      */
-    public function validate(\Magento\Object $object)
+    public function validate(\Magento\Framework\Model\AbstractModel $model)
     {
-        return $this->validateAttribute($object->getData($this->getAttribute()));
+        if (!$model->hasData($this->getAttribute())) {
+            $model->load($model->getId());
+        }
+        $attributeValue = $model->getData($this->getAttribute());
+
+        return $this->validateAttribute($attributeValue);
     }
 
     /**

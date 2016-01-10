@@ -1,103 +1,40 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- */
-
-/**
- * @method \Magento\Sales\Model\Resource\Order\Creditmemo\Item _getResource()
- * @method \Magento\Sales\Model\Resource\Order\Creditmemo\Item getResource()
- * @method int getParentId()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setParentId(int $value)
- * @method float getWeeeTaxAppliedRowAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setWeeeTaxAppliedRowAmount(float $value)
- * @method float getBasePrice()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBasePrice(float $value)
- * @method float getBaseWeeeTaxRowDisposition()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseWeeeTaxRowDisposition(float $value)
- * @method float getTaxAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setTaxAmount(float $value)
- * @method float getBaseWeeeTaxAppliedAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseWeeeTaxAppliedAmount(float $value)
- * @method float getWeeeTaxRowDisposition()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setWeeeTaxRowDisposition(float $value)
- * @method float getBaseRowTotal()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseRowTotal(float $value)
- * @method float getDiscountAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setDiscountAmount(float $value)
- * @method float getRowTotal()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setRowTotal(float $value)
- * @method float getWeeeTaxAppliedAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setWeeeTaxAppliedAmount(float $value)
- * @method float getBaseDiscountAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseDiscountAmount(float $value)
- * @method float getBaseWeeeTaxDisposition()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseWeeeTaxDisposition(float $value)
- * @method float getPriceInclTax()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setPriceInclTax(float $value)
- * @method float getBaseTaxAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseTaxAmount(float $value)
- * @method float getWeeeTaxDisposition()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setWeeeTaxDisposition(float $value)
- * @method float getBasePriceInclTax()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBasePriceInclTax(float $value)
- * @method float getQty()
- * @method float getBaseCost()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseCost(float $value)
- * @method float getBaseWeeeTaxAppliedRowAmnt()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseWeeeTaxAppliedRowAmnt(float $value)
- * @method float getPrice()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setPrice(float $value)
- * @method float getBaseRowTotalInclTax()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseRowTotalInclTax(float $value)
- * @method float getRowTotalInclTax()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setRowTotalInclTax(float $value)
- * @method int getProductId()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setProductId(int $value)
- * @method int getOrderItemId()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setOrderItemId(int $value)
- * @method string getAdditionalData()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setAdditionalData(string $value)
- * @method string getDescription()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setDescription(string $value)
- * @method string getWeeeTaxApplied()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setWeeeTaxApplied(string $value)
- * @method string getSku()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setSku(string $value)
- * @method string getName()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setName(string $value)
- * @method float getHiddenTaxAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setHiddenTaxAmount(float $value)
- * @method float getBaseHiddenTaxAmount()
- * @method \Magento\Sales\Model\Order\Creditmemo\Item setBaseHiddenTaxAmount(float $value)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order\Creditmemo;
 
-class Item extends \Magento\Core\Model\AbstractModel
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Sales\Api\Data\CreditmemoItemInterface;
+use Magento\Sales\Model\AbstractModel;
+
+/**
+ * @method \Magento\Sales\Model\ResourceModel\Order\Creditmemo\Item _getResource()
+ * @method \Magento\Sales\Model\ResourceModel\Order\Creditmemo\Item getResource()
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @SuppressWarnings(PHPMD.ExcessivePublicCount)
+ */
+class Item extends AbstractModel implements CreditmemoItemInterface
 {
+    /**
+     * @var string
+     */
     protected $_eventPrefix = 'sales_creditmemo_item';
+
+    /**
+     * @var string
+     */
     protected $_eventObject = 'creditmemo_item';
+
+    /**
+     * @var \Magento\Sales\Model\Order\Creditmemo|null
+     */
     protected $_creditmemo = null;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Item|null
+     */
     protected $_orderItem = null;
 
     /**
@@ -106,40 +43,52 @@ class Item extends \Magento\Core\Model\AbstractModel
     protected $_orderItemFactory;
 
     /**
-     * @param \Magento\Core\Model\Context $context
-     * @param \Magento\Core\Model\Registry $registry
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param AttributeValueFactory $customAttributeFactory
      * @param \Magento\Sales\Model\Order\ItemFactory $orderItemFactory
-     * @param \Magento\Core\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Core\Model\Context $context,
-        \Magento\Core\Model\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        AttributeValueFactory $customAttributeFactory,
         \Magento\Sales\Model\Order\ItemFactory $orderItemFactory,
-        \Magento\Core\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         parent::__construct(
-            $context, $registry, $resource, $resourceCollection, $data
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $resource,
+            $resourceCollection,
+            $data
         );
         $this->_orderItemFactory = $orderItemFactory;
     }
 
     /**
      * Initialize resource model
+     *
+     * @return void
      */
     protected function _construct()
     {
-        $this->_init('Magento\Sales\Model\Resource\Order\Creditmemo\Item');
+        $this->_init('Magento\Sales\Model\ResourceModel\Order\Creditmemo\Item');
     }
 
     /**
      * Declare creditmemo instance
      *
-     * @param   \Magento\Sales\Model\Order\Creditmemo $creditmemo
-     * @return  \Magento\Sales\Model\Order\Creditmemo\Item
+     * @param \Magento\Sales\Model\Order\Creditmemo $creditmemo
+     * @return $this
      */
     public function setCreditmemo(\Magento\Sales\Model\Order\Creditmemo $creditmemo)
     {
@@ -160,8 +109,8 @@ class Item extends \Magento\Core\Model\AbstractModel
     /**
      * Declare order item instance
      *
-     * @param   \Magento\Sales\Model\Order\Item $item
-     * @return  \Magento\Sales\Model\Order\Creditmemo\Item
+     * @param \Magento\Sales\Model\Order\Item $item
+     * @return $this
      */
     public function setOrderItem(\Magento\Sales\Model\Order\Item $item)
     {
@@ -177,7 +126,7 @@ class Item extends \Magento\Core\Model\AbstractModel
      */
     public function getOrderItem()
     {
-        if (is_null($this->_orderItem)) {
+        if ($this->_orderItem === null) {
             if ($this->getCreditmemo()) {
                 $this->_orderItem = $this->getCreditmemo()->getOrder()->getItemById($this->getOrderItemId());
             } else {
@@ -191,13 +140,13 @@ class Item extends \Magento\Core\Model\AbstractModel
      * Declare qty
      *
      * @param   float $qty
-     * @return  \Magento\Sales\Model\Order\Creditmemo\Item
-     * @throws \Magento\Core\Exception
+     * @return $this
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function setQty($qty)
     {
         if ($this->getOrderItem()->getIsQtyDecimal()) {
-            $qty = (float)$qty;
+            $qty = (double)$qty;
         } else {
             $qty = (int)$qty;
         }
@@ -208,7 +157,7 @@ class Item extends \Magento\Core\Model\AbstractModel
         if ($qty <= $this->getOrderItem()->getQtyToRefund() || $this->getOrderItem()->isDummy()) {
             $this->setData('qty', $qty);
         } else {
-            throw new \Magento\Core\Exception(
+            throw new \Magento\Framework\Exception\LocalizedException(
                 __('We found an invalid quantity to refund item "%1".', $this->getName())
             );
         }
@@ -218,7 +167,7 @@ class Item extends \Magento\Core\Model\AbstractModel
     /**
      * Applying qty to order item
      *
-     * @return \Magento\Sales\Model\Order\Shipment\Item
+     * @return \Magento\Sales\Model\Order\Creditmemo\Item
      */
     public function register()
     {
@@ -227,8 +176,12 @@ class Item extends \Magento\Core\Model\AbstractModel
         $orderItem->setQtyRefunded($orderItem->getQtyRefunded() + $this->getQty());
         $orderItem->setTaxRefunded($orderItem->getTaxRefunded() + $this->getTaxAmount());
         $orderItem->setBaseTaxRefunded($orderItem->getBaseTaxRefunded() + $this->getBaseTaxAmount());
-        $orderItem->setHiddenTaxRefunded($orderItem->getHiddenTaxRefunded() + $this->getHiddenTaxAmount());
-        $orderItem->setBaseHiddenTaxRefunded($orderItem->getBaseHiddenTaxRefunded() + $this->getBaseHiddenTaxAmount());
+        $orderItem->setDiscountTaxCompensationRefunded(
+            $orderItem->getDiscountTaxCompensationRefunded() + $this->getDiscountTaxCompensationAmount()
+        );
+        $orderItem->setBaseDiscountTaxCompensationRefunded(
+            $orderItem->getBaseDiscountTaxCompensationRefunded() + $this->getBaseDiscountTaxCompensationAmount()
+        );
         $orderItem->setAmountRefunded($orderItem->getAmountRefunded() + $this->getRowTotal());
         $orderItem->setBaseAmountRefunded($orderItem->getBaseAmountRefunded() + $this->getBaseRowTotal());
         $orderItem->setDiscountRefunded($orderItem->getDiscountRefunded() + $this->getDiscountAmount());
@@ -237,18 +190,23 @@ class Item extends \Magento\Core\Model\AbstractModel
         return $this;
     }
 
+    /**
+     * @return $this
+     */
     public function cancel()
     {
-        $this->getOrderItem()->setQtyRefunded(
-            $this->getOrderItem()->getQtyRefunded()-$this->getQty()
-        );
+        $this->getOrderItem()->setQtyRefunded($this->getOrderItem()->getQtyRefunded() - $this->getQty());
         $this->getOrderItem()->setTaxRefunded(
-            $this->getOrderItem()->getTaxRefunded()
-                - $this->getOrderItem()->getBaseTaxAmount() * $this->getQty() / $this->getOrderItem()->getQtyOrdered()
+            $this->getOrderItem()->getTaxRefunded() -
+            $this->getOrderItem()->getBaseTaxAmount() *
+            $this->getQty() /
+            $this->getOrderItem()->getQtyOrdered()
         );
-        $this->getOrderItem()->setHiddenTaxRefunded(
-            $this->getOrderItem()->getHiddenTaxRefunded()
-                - $this->getOrderItem()->getHiddenTaxAmount() * $this->getQty() / $this->getOrderItem()->getQtyOrdered()
+        $this->getOrderItem()->setDiscountTaxCompensationRefunded(
+            $this->getOrderItem()->getDiscountTaxCompensationRefunded() -
+            $this->getOrderItem()->getDiscountTaxCompensationAmount() *
+            $this->getQty() /
+            $this->getOrderItem()->getQtyOrdered()
         );
         return $this;
     }
@@ -260,18 +218,18 @@ class Item extends \Magento\Core\Model\AbstractModel
      */
     public function calcRowTotal()
     {
-        $creditmemo           = $this->getCreditmemo();
-        $orderItem            = $this->getOrderItem();
+        $creditmemo = $this->getCreditmemo();
+        $orderItem = $this->getOrderItem();
         $orderItemQtyInvoiced = $orderItem->getQtyInvoiced();
 
-        $rowTotal            = $orderItem->getRowInvoiced() - $orderItem->getAmountRefunded();
-        $baseRowTotal        = $orderItem->getBaseRowInvoiced() - $orderItem->getBaseAmountRefunded();
-        $rowTotalInclTax     = $orderItem->getRowTotalInclTax();
+        $rowTotal = $orderItem->getRowInvoiced() - $orderItem->getAmountRefunded();
+        $baseRowTotal = $orderItem->getBaseRowInvoiced() - $orderItem->getBaseAmountRefunded();
+        $rowTotalInclTax = $orderItem->getRowTotalInclTax();
         $baseRowTotalInclTax = $orderItem->getBaseRowTotalInclTax();
 
-        if (!$this->isLast() && $orderItemQtyInvoiced > 0) {
+        if (!$this->isLast() && $orderItemQtyInvoiced > 0 && $this->getQty() >= 0) {
             $availableQty = $orderItemQtyInvoiced - $orderItem->getQtyRefunded();
-            $rowTotal     = $creditmemo->roundPrice($rowTotal / $availableQty * $this->getQty());
+            $rowTotal = $creditmemo->roundPrice($rowTotal / $availableQty * $this->getQty());
             $baseRowTotal = $creditmemo->roundPrice($baseRowTotal / $availableQty * $this->getQty(), 'base');
         }
         $this->setRowTotal($rowTotal);
@@ -297,27 +255,601 @@ class Item extends \Magento\Core\Model\AbstractModel
     public function isLast()
     {
         $orderItem = $this->getOrderItem();
-        if ((string)(float)$this->getQty() == (string)(float)$orderItem->getQtyToRefund()
-            && !$orderItem->getQtyToInvoice()
-        ) {
+        if ((string)(double)$this->getQty() == (string)(double)$orderItem->getQtyToRefund()) {
             return true;
         }
         return false;
     }
 
     /**
-     * Before object save
+     * Returns additional_data
      *
-     * @return \Magento\Sales\Model\Order\Creditmemo\Item
+     * @return string
      */
-    protected function _beforeSave()
+    public function getAdditionalData()
     {
-        parent::_beforeSave();
-
-        if (!$this->getParentId() && $this->getCreditmemo()) {
-            $this->setParentId($this->getCreditmemo()->getId());
-        }
-
-        return $this;
+        return $this->getData(CreditmemoItemInterface::ADDITIONAL_DATA);
     }
+
+    /**
+     * Returns base_cost
+     *
+     * @return float
+     */
+    public function getBaseCost()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_COST);
+    }
+
+    /**
+     * Returns base_discount_amount
+     *
+     * @return float
+     */
+    public function getBaseDiscountAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_DISCOUNT_AMOUNT);
+    }
+
+    /**
+     * Returns base_discount_tax_compensation_amount
+     *
+     * @return float
+     */
+    public function getBaseDiscountTaxCompensationAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_DISCOUNT_TAX_COMPENSATION_AMOUNT);
+    }
+
+    /**
+     * Returns base_price
+     *
+     * @return float
+     */
+    public function getBasePrice()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_PRICE);
+    }
+
+    /**
+     * Returns base_price_incl_tax
+     *
+     * @return float
+     */
+    public function getBasePriceInclTax()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_PRICE_INCL_TAX);
+    }
+
+    /**
+     * Returns base_row_total
+     *
+     * @return float
+     */
+    public function getBaseRowTotal()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_ROW_TOTAL);
+    }
+
+    /**
+     * Returns base_row_total_incl_tax
+     *
+     * @return float
+     */
+    public function getBaseRowTotalInclTax()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_ROW_TOTAL_INCL_TAX);
+    }
+
+    /**
+     * Returns base_tax_amount
+     *
+     * @return float
+     */
+    public function getBaseTaxAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_TAX_AMOUNT);
+    }
+
+    /**
+     * Returns base_weee_tax_applied_amount
+     *
+     * @return float
+     */
+    public function getBaseWeeeTaxAppliedAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_WEEE_TAX_APPLIED_AMOUNT);
+    }
+
+    /**
+     * Returns base_weee_tax_applied_row_amnt
+     *
+     * @return float
+     */
+    public function getBaseWeeeTaxAppliedRowAmnt()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_WEEE_TAX_APPLIED_ROW_AMNT);
+    }
+
+    /**
+     * Returns base_weee_tax_disposition
+     *
+     * @return float
+     */
+    public function getBaseWeeeTaxDisposition()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_WEEE_TAX_DISPOSITION);
+    }
+
+    /**
+     * Returns base_weee_tax_row_disposition
+     *
+     * @return float
+     */
+    public function getBaseWeeeTaxRowDisposition()
+    {
+        return $this->getData(CreditmemoItemInterface::BASE_WEEE_TAX_ROW_DISPOSITION);
+    }
+
+    /**
+     * Returns description
+     *
+     * @return string
+     */
+    public function getDescription()
+    {
+        return $this->getData(CreditmemoItemInterface::DESCRIPTION);
+    }
+
+    /**
+     * Returns discount_amount
+     *
+     * @return float
+     */
+    public function getDiscountAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::DISCOUNT_AMOUNT);
+    }
+
+    /**
+     * Returns discount_tax_compensation_amount
+     *
+     * @return float
+     */
+    public function getDiscountTaxCompensationAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::DISCOUNT_TAX_COMPENSATION_AMOUNT);
+    }
+
+    /**
+     * Returns name
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->getData(CreditmemoItemInterface::NAME);
+    }
+
+    /**
+     * Returns order_item_id
+     *
+     * @return int
+     */
+    public function getOrderItemId()
+    {
+        return $this->getData(CreditmemoItemInterface::ORDER_ITEM_ID);
+    }
+
+    /**
+     * Returns parent_id
+     *
+     * @return int
+     */
+    public function getParentId()
+    {
+        return $this->getData(CreditmemoItemInterface::PARENT_ID);
+    }
+
+    /**
+     * Returns price
+     *
+     * @return float
+     */
+    public function getPrice()
+    {
+        return $this->getData(CreditmemoItemInterface::PRICE);
+    }
+
+    /**
+     * Returns price_incl_tax
+     *
+     * @return float
+     */
+    public function getPriceInclTax()
+    {
+        return $this->getData(CreditmemoItemInterface::PRICE_INCL_TAX);
+    }
+
+    /**
+     * Returns product_id
+     *
+     * @return int
+     */
+    public function getProductId()
+    {
+        return $this->getData(CreditmemoItemInterface::PRODUCT_ID);
+    }
+
+    /**
+     * Returns qty
+     *
+     * @return float
+     */
+    public function getQty()
+    {
+        return $this->getData(CreditmemoItemInterface::QTY);
+    }
+
+    /**
+     * Returns row_total
+     *
+     * @return float
+     */
+    public function getRowTotal()
+    {
+        return $this->getData(CreditmemoItemInterface::ROW_TOTAL);
+    }
+
+    /**
+     * Returns row_total_incl_tax
+     *
+     * @return float
+     */
+    public function getRowTotalInclTax()
+    {
+        return $this->getData(CreditmemoItemInterface::ROW_TOTAL_INCL_TAX);
+    }
+
+    /**
+     * Returns sku
+     *
+     * @return string
+     */
+    public function getSku()
+    {
+        return $this->getData(CreditmemoItemInterface::SKU);
+    }
+
+    /**
+     * Returns tax_amount
+     *
+     * @return float
+     */
+    public function getTaxAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::TAX_AMOUNT);
+    }
+
+    /**
+     * Returns weee_tax_applied
+     *
+     * @return string
+     */
+    public function getWeeeTaxApplied()
+    {
+        return $this->getData(CreditmemoItemInterface::WEEE_TAX_APPLIED);
+    }
+
+    /**
+     * Returns weee_tax_applied_amount
+     *
+     * @return float
+     */
+    public function getWeeeTaxAppliedAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::WEEE_TAX_APPLIED_AMOUNT);
+    }
+
+    /**
+     * Returns weee_tax_applied_row_amount
+     *
+     * @return float
+     */
+    public function getWeeeTaxAppliedRowAmount()
+    {
+        return $this->getData(CreditmemoItemInterface::WEEE_TAX_APPLIED_ROW_AMOUNT);
+    }
+
+    /**
+     * Returns weee_tax_disposition
+     *
+     * @return float
+     */
+    public function getWeeeTaxDisposition()
+    {
+        return $this->getData(CreditmemoItemInterface::WEEE_TAX_DISPOSITION);
+    }
+
+    /**
+     * Returns weee_tax_row_disposition
+     *
+     * @return float
+     */
+    public function getWeeeTaxRowDisposition()
+    {
+        return $this->getData(CreditmemoItemInterface::WEEE_TAX_ROW_DISPOSITION);
+    }
+
+    //@codeCoverageIgnoreStart
+    /**
+     * {@inheritdoc}
+     */
+    public function setParentId($id)
+    {
+        return $this->setData(CreditmemoItemInterface::PARENT_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBasePrice($price)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_PRICE, $price);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setTaxAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseRowTotal($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_ROW_TOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDiscountAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::DISCOUNT_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setRowTotal($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::ROW_TOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseDiscountAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_DISCOUNT_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setPriceInclTax($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::PRICE_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseTaxAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBasePriceInclTax($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_PRICE_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseCost($baseCost)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_COST, $baseCost);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setPrice($price)
+    {
+        return $this->setData(CreditmemoItemInterface::PRICE, $price);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseRowTotalInclTax($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_ROW_TOTAL_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setRowTotalInclTax($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::ROW_TOTAL_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setProductId($id)
+    {
+        return $this->setData(CreditmemoItemInterface::PRODUCT_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setOrderItemId($id)
+    {
+        return $this->setData(CreditmemoItemInterface::ORDER_ITEM_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setAdditionalData($additionalData)
+    {
+        return $this->setData(CreditmemoItemInterface::ADDITIONAL_DATA, $additionalData);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDescription($description)
+    {
+        return $this->setData(CreditmemoItemInterface::DESCRIPTION, $description);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setSku($sku)
+    {
+        return $this->setData(CreditmemoItemInterface::SKU, $sku);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setName($name)
+    {
+        return $this->setData(CreditmemoItemInterface::NAME, $name);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDiscountTaxCompensationAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::DISCOUNT_TAX_COMPENSATION_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseDiscountTaxCompensationAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_DISCOUNT_TAX_COMPENSATION_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setWeeeTaxDisposition($weeeTaxDisposition)
+    {
+        return $this->setData(CreditmemoItemInterface::WEEE_TAX_DISPOSITION, $weeeTaxDisposition);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setWeeeTaxRowDisposition($weeeTaxRowDisposition)
+    {
+        return $this->setData(CreditmemoItemInterface::WEEE_TAX_ROW_DISPOSITION, $weeeTaxRowDisposition);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseWeeeTaxDisposition($baseWeeeTaxDisposition)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_WEEE_TAX_DISPOSITION, $baseWeeeTaxDisposition);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseWeeeTaxRowDisposition($baseWeeeTaxRowDisposition)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_WEEE_TAX_ROW_DISPOSITION, $baseWeeeTaxRowDisposition);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setWeeeTaxApplied($weeeTaxApplied)
+    {
+        return $this->setData(CreditmemoItemInterface::WEEE_TAX_APPLIED, $weeeTaxApplied);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseWeeeTaxAppliedAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_WEEE_TAX_APPLIED_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseWeeeTaxAppliedRowAmnt($amnt)
+    {
+        return $this->setData(CreditmemoItemInterface::BASE_WEEE_TAX_APPLIED_ROW_AMNT, $amnt);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setWeeeTaxAppliedAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::WEEE_TAX_APPLIED_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setWeeeTaxAppliedRowAmount($amount)
+    {
+        return $this->setData(CreditmemoItemInterface::WEEE_TAX_APPLIED_ROW_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Magento\Sales\Api\Data\CreditmemoItemExtensionInterface|null
+     */
+    public function getExtensionAttributes()
+    {
+        return $this->_getExtensionAttributes();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param \Magento\Sales\Api\Data\CreditmemoItemExtensionInterface $extensionAttributes
+     * @return $this
+     */
+    public function setExtensionAttributes(
+        \Magento\Sales\Api\Data\CreditmemoItemExtensionInterface $extensionAttributes
+    ) {
+        return $this->_setExtensionAttributes($extensionAttributes);
+    }
+    //@codeCoverageIgnoreEnd
 }

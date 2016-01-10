@@ -1,34 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Directory
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Region
  *
- * @method \Magento\Directory\Model\Resource\Region _getResource()
- * @method \Magento\Directory\Model\Resource\Region getResource()
+ * @method \Magento\Directory\Model\ResourceModel\Region _getResource()
+ * @method \Magento\Directory\Model\ResourceModel\Region getResource()
  * @method string getRegionId()
  * @method string getCountryId()
  * @method \Magento\Directory\Model\Region setCountryId(string $value)
@@ -37,17 +17,18 @@
  * @method string getDefaultName()
  * @method \Magento\Directory\Model\Region setDefaultName(string $value)
  *
- * @category    Magento
- * @package     Magento_Directory
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Directory\Model;
 
-class Region extends \Magento\Core\Model\AbstractModel
+class Region extends \Magento\Framework\Model\AbstractModel
 {
+    /**
+     * @return void
+     */
     protected function _construct()
     {
-        $this->_init('Magento\Directory\Model\Resource\Region');
+        $this->_init('Magento\Directory\Model\ResourceModel\Region');
     }
 
     /**
@@ -60,12 +41,19 @@ class Region extends \Magento\Core\Model\AbstractModel
     public function getName()
     {
         $name = $this->getData('name');
-        if (is_null($name)) {
+        if ($name === null) {
             $name = $this->getData('default_name');
         }
         return $name;
     }
 
+    /**
+     * Load region by code
+     *
+     * @param string $code
+     * @param string $countryId
+     * @return $this
+     */
     public function loadByCode($code, $countryId)
     {
         if ($code) {
@@ -74,10 +62,16 @@ class Region extends \Magento\Core\Model\AbstractModel
         return $this;
     }
 
+    /**
+     * Load region by name
+     *
+     * @param string $name
+     * @param string $countryId
+     * @return $this
+     */
     public function loadByName($name, $countryId)
     {
         $this->_getResource()->loadByName($this, $name, $countryId);
         return $this;
     }
-
 }

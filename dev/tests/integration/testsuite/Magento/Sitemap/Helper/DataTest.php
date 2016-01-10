@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sitemap
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Sitemap\Helper;
 
 class DataTest extends \PHPUnit_Framework_TestCase
@@ -36,8 +14,9 @@ class DataTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\Sitemap\Helper\Data');
+        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Sitemap\Helper\Data'
+        );
     }
 
     /**
@@ -47,12 +26,9 @@ class DataTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             50000,
-            $this->_helper->getMaximumLinesNumber(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            $this->_helper->getMaximumLinesNumber(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
-        $this->assertEquals(
-            10,
-            $this->_helper->getMaximumLinesNumber(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
-        );
+        $this->assertEquals(10, $this->_helper->getMaximumLinesNumber(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -61,12 +37,10 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetMaximumFileSize()
     {
         $this->assertEquals(
-            10485760, $this->_helper->getMaximumFileSize(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            10485760,
+            $this->_helper->getMaximumFileSize(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
-        $this->assertEquals(
-            1024,
-            $this->_helper->getMaximumFileSize(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
-        );
+        $this->assertEquals(1024, $this->_helper->getMaximumFileSize(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -75,10 +49,12 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetCategoryChangefreq()
     {
         $this->assertEquals(
-            'daily', $this->_helper->getCategoryChangefreq(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            'daily',
+            $this->_helper->getCategoryChangefreq(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
         $this->assertEquals(
-            'montly', $this->_helper->getCategoryChangefreq(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
+            'montly',
+            $this->_helper->getCategoryChangefreq(\Magento\Store\Model\Store::DISTRO_STORE_ID)
         );
     }
 
@@ -88,10 +64,12 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetProductChangefreq()
     {
         $this->assertEquals(
-            'daily', $this->_helper->getProductChangefreq(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            'daily',
+            $this->_helper->getProductChangefreq(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
         $this->assertEquals(
-            'montly', $this->_helper->getProductChangefreq(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
+            'montly',
+            $this->_helper->getProductChangefreq(\Magento\Store\Model\Store::DISTRO_STORE_ID)
         );
     }
 
@@ -100,14 +78,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetPageChangefreq()
     {
-        $this->assertEquals(
-            'daily',
-            $this->_helper->getPageChangefreq(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
-        );
-        $this->assertEquals(
-            'montly',
-            $this->_helper->getPageChangefreq(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
-        );
+        $this->assertEquals('daily', $this->_helper->getPageChangefreq(\Magento\Store\Model\Store::DEFAULT_STORE_ID));
+        $this->assertEquals('montly', $this->_helper->getPageChangefreq(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -115,14 +87,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetCategoryPriority()
     {
-        $this->assertEquals(
-            0.5,
-            $this->_helper->getCategoryPriority(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
-        );
-        $this->assertEquals(
-            100,
-            $this->_helper->getCategoryPriority(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
-        );
+        $this->assertEquals(0.5, $this->_helper->getCategoryPriority(\Magento\Store\Model\Store::DEFAULT_STORE_ID));
+        $this->assertEquals(100, $this->_helper->getCategoryPriority(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -130,11 +96,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetProductPriority()
     {
-        $this->assertEquals(
-            1,
-            $this->_helper->getProductPriority(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
-        );
-        $this->assertEquals(100, $this->_helper->getProductPriority(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID));
+        $this->assertEquals(1, $this->_helper->getProductPriority(\Magento\Store\Model\Store::DEFAULT_STORE_ID));
+        $this->assertEquals(100, $this->_helper->getProductPriority(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -142,11 +105,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetPagePriority()
     {
-        $this->assertEquals(
-            0.25,
-            $this->_helper->getPagePriority(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
-        );
-        $this->assertEquals(100, $this->_helper->getPagePriority(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID));
+        $this->assertEquals(0.25, $this->_helper->getPagePriority(\Magento\Store\Model\Store::DEFAULT_STORE_ID));
+        $this->assertEquals(100, $this->_helper->getPagePriority(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -156,11 +116,9 @@ class DataTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             0,
-            $this->_helper->getEnableSubmissionRobots(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            $this->_helper->getEnableSubmissionRobots(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
-        $this->assertEquals(
-            1, $this->_helper->getEnableSubmissionRobots(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
-        );
+        $this->assertEquals(1, $this->_helper->getEnableSubmissionRobots(\Magento\Store\Model\Store::DISTRO_STORE_ID));
     }
 
     /**
@@ -169,10 +127,12 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetProductImageIncludePolicy()
     {
         $this->assertEquals(
-            'all', $this->_helper->getProductImageIncludePolicy(\Magento\Core\Model\Store::DEFAULT_STORE_ID)
+            'all',
+            $this->_helper->getProductImageIncludePolicy(\Magento\Store\Model\Store::DEFAULT_STORE_ID)
         );
         $this->assertEquals(
-            'base', $this->_helper->getProductImageIncludePolicy(\Magento\Core\Model\AppInterface::DISTRO_STORE_ID)
+            'base',
+            $this->_helper->getProductImageIncludePolicy(\Magento\Store\Model\Store::DISTRO_STORE_ID)
         );
     }
 }

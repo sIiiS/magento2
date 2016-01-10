@@ -1,41 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Eav
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Eav\Model\Entity\Attribute\Backend;
 
 /**
  * "Serialized" attribute backend
  */
-namespace Magento\Eav\Model\Entity\Attribute\Backend;
-
 class Serialized extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
 {
     /**
      * Serialize before saving
      *
-     * @param \Magento\Object $object
-     * @return \Magento\Eav\Model\Entity\Attribute\Backend\Serialized
+     * @param \Magento\Framework\DataObject $object
+     * @return $this
      */
     public function beforeSave($object)
     {
@@ -51,8 +30,8 @@ class Serialized extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBac
     /**
      * Unserialize after saving
      *
-     * @param \Magento\Object $object
-     * @return \Magento\Eav\Model\Entity\Attribute\Backend\Serialized
+     * @param \Magento\Framework\DataObject $object
+     * @return $this
      */
     public function afterSave($object)
     {
@@ -64,8 +43,8 @@ class Serialized extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBac
     /**
      * Unserialize after loading
      *
-     * @param \Magento\Object $object
-     * @return \Magento\Eav\Model\Entity\Attribute\Backend\Serialized
+     * @param \Magento\Framework\DataObject $object
+     * @return $this
      */
     public function afterLoad($object)
     {
@@ -77,10 +56,10 @@ class Serialized extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBac
     /**
      * Try to unserialize the attribute value
      *
-     * @param \Magento\Object $object
-     * @return \Magento\Eav\Model\Entity\Attribute\Backend\Serialized
+     * @param \Magento\Framework\DataObject $object
+     * @return $this
      */
-    protected function _unserialize(\Magento\Object $object)
+    protected function _unserialize(\Magento\Framework\DataObject $object)
     {
         $attrCode = $this->getAttribute()->getAttributeCode();
         if ($object->getData($attrCode)) {

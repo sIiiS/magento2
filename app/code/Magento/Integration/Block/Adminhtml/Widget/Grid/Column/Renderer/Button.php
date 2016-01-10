@@ -1,44 +1,24 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Integration\Block\Adminhtml\Widget\Grid\Column\Renderer;
 
 use Magento\Backend\Block\Widget\Grid\Column\Renderer\AbstractRenderer;
+use Magento\Framework\DataObject;
 use Magento\Integration\Model\Integration;
-use Magento\Object;
 
 /**
  * Render HTML <button> tag.
  *
- * @package Magento\Integration\Block\Adminhtml\Widget\Grid\Column\Renderer
  */
 class Button extends AbstractRenderer
 {
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
-    public function render(Object $row)
+    public function render(\Magento\Framework\DataObject $row)
     {
         /** @var array $attributes */
         $attributes = $this->_prepareAttributes($row);
@@ -48,32 +28,35 @@ class Button extends AbstractRenderer
     /**
      * Determine whether current integration came from config file
      *
-     * @param \Magento\Object $row
+     * @param \Magento\Framework\DataObject $row
      * @return bool
      */
-    protected function _isConfigBasedIntegration(Object $row)
+    protected function _isConfigBasedIntegration(DataObject $row)
     {
-        return ($row->hasData(Integration::SETUP_TYPE)
-            && $row->getData(Integration::SETUP_TYPE) == Integration::TYPE_CONFIG);
+        return $row->hasData(
+            Integration::SETUP_TYPE
+        ) && $row->getData(
+            Integration::SETUP_TYPE
+        ) == Integration::TYPE_CONFIG;
     }
 
     /**
      * Whether current item is disabled.
      *
-     * @param \Magento\Object $row
+     * @param \Magento\Framework\DataObject $row
      * @return bool
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    protected function _isDisabled(Object $row)
+    protected function _isDisabled(DataObject $row)
     {
         return false;
     }
 
     /**
-     * @param \Magento\Object $row
+     * @param \Magento\Framework\DataObject $row
      * @return string
      */
-    protected function _getDisabledAttribute(Object $row)
+    protected function _getDisabledAttribute(DataObject $row)
     {
         return $this->_isDisabled($row) ? 'disabled' : '';
     }
@@ -85,18 +68,21 @@ class Button extends AbstractRenderer
      * - Then it tries to get it from the button's column layout description.
      * If received attribute value is empty - attribute is not added to final HTML.
      *
-     * @param \Magento\Object $row
+     * @param \Magento\Framework\DataObject $row
      * @return array
      */
-    protected function _prepareAttributes(Object $row)
+    protected function _prepareAttributes(DataObject $row)
     {
         $attributes = [];
         foreach ($this->_getValidAttributes() as $attributeName) {
             $methodName = sprintf('_get%sAttribute', ucfirst($attributeName));
             $rowMethodName = sprintf('get%s', ucfirst($attributeName));
-            $attributeValue = method_exists($this, $methodName)
-                ? $this->$methodName($row)
-                : $this->getColumn()->$rowMethodName();
+            $attributeValue = method_exists(
+                $this,
+                $methodName
+            ) ? $this->{$methodName}(
+                $row
+            ) : $this->getColumn()->{$rowMethodName}();
 
             if ($attributeValue) {
                 $attributes[] = sprintf('%s="%s"', $attributeName, $this->escapeHtml($attributeValue));
@@ -112,13 +98,31 @@ class Button extends AbstractRenderer
      */
     protected function _getValidAttributes()
     {
+        /*
+         * HTML global attributes - 'accesskey', 'class', 'id', 'lang', 'style', 'tabindex', 'title'
+         * HTML mouse event attributes - 'onclick', 'ondblclick', 'onmousedown', 'onmousemove', 'onmouseout',
+         *                               'onmouseover', 'onmouseup'
+         * Element attributes - 'disabled', 'name', 'type', 'value'
+         */
         return [
-            // HTML global attributes
-            'accesskey', 'class', 'id', 'lang', 'style', 'tabindex', 'title',
-            // HTML mouse event attributes
-            'onclick', 'ondblclick', 'onmousedown', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup',
-            // Element attributes
-            'disabled', 'name', 'type', 'value',
+            'accesskey',
+            'class',
+            'id',
+            'lang',
+            'style',
+            'tabindex',
+            'title',
+            'onclick',
+            'ondblclick',
+            'onmousedown',
+            'onmousemove',
+            'onmouseout',
+            'onmouseover',
+            'onmouseup',
+            'disabled',
+            'name',
+            'type',
+            'value'
         ];
     }
 

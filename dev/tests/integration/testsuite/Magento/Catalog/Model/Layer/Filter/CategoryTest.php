@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Catalog\Model\Layer\Filter;
 
 /**
@@ -46,17 +24,16 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_category = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Catalog\Model\Category');
+        $this->_category = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\Catalog\Model\Category'
+        );
         $this->_category->load(5);
+        $layer = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
+            ->create('Magento\Catalog\Model\Layer\Category', [
+                'data' => ['current_category' => $this->_category]
+            ]);
         $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Catalog\Model\Layer\Filter\Category');
-        $this->_model->setData(array(
-            'layer' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Catalog\Model\Layer', array(
-                'data' => array('current_category' => $this->_category)
-            )),
-        ));
+            ->create('Magento\Catalog\Model\Layer\Filter\Category', ['layer' => $layer]);
     }
 
     public function testGetResetValue()
@@ -69,12 +46,15 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
         $this->_model->apply(
             $objectManager->get('Magento\TestFramework\Request'),
-            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\View\LayoutInterface')
-                ->createBlock('Magento\View\Element\Text')
+            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+                'Magento\Framework\View\LayoutInterface'
+            )->createBlock(
+                'Magento\Framework\View\Element\Text'
+            )
         );
         /** @var $objectManager \Magento\TestFramework\ObjectManager */
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $this->assertNull($objectManager->get('Magento\Core\Model\Registry')->registry('current_category_filter'));
+        $this->assertNull($objectManager->get('Magento\Framework\Registry')->registry('current_category_filter'));
     }
 
     public function testApply()
@@ -84,12 +64,15 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
         $request->setParam('cat', 3);
         $this->_model->apply(
             $request,
-            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\View\LayoutInterface')
-                ->createBlock('Magento\View\Element\Text')
+            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+                'Magento\Framework\View\LayoutInterface'
+            )->createBlock(
+                'Magento\Framework\View\Element\Text'
+            )
         );
 
         /** @var $category \Magento\Catalog\Model\Category */
-        $category = $objectManager->get('Magento\Core\Model\Registry')->registry('current_category_filter');
+        $category = $objectManager->get('Magento\Framework\Registry')->registry('current_category_filter');
         $this->assertInstanceOf('Magento\Catalog\Model\Category', $category);
         $this->assertEquals(3, $category->getId());
 
@@ -109,21 +92,6 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('Category', $this->_model->getName());
     }
 
-    public function testGetCategory()
-    {
-        $this->assertSame($this->_category, $this->_model->getCategory());
-    }
-
-    /**
-     * @depends testApply
-     */
-    public function testGetCategoryApplied(\Magento\Catalog\Model\Layer\Filter\Category $modelApplied)
-    {
-        $category = $modelApplied->getCategory();
-        $this->assertInstanceOf('Magento\Catalog\Model\Category', $category);
-        $this->assertEquals(3, $category->getId());
-    }
-
     /**
      * @depends testApply
      */
@@ -141,6 +109,6 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($modelApplied, $item->getFilter());
         $this->assertEquals('Category 1.1', $item->getLabel());
         $this->assertEquals(4, $item->getValue());
-        $this->assertEquals(1, $item->getCount());
+        $this->assertEquals(2, $item->getCount());
     }
 }

@@ -1,40 +1,22 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Downloadable
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab;
+
+use Magento\Backend\Block\Template\Context;
+use Magento\Backend\Block\Widget;
+use Magento\Backend\Block\Widget\Tab\TabInterface;
+use Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs;
+use Magento\Framework\Registry;
 
 /**
  * Adminhtml catalog product downloadable items tab and form
  *
- * @category    Magento
- * @package     Magento_Downloadable
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab;
-
-class Downloadable
-    extends \Magento\Adminhtml\Block\Widget implements \Magento\Adminhtml\Block\Widget\Tab\TabInterface
+class Downloadable extends Widget implements TabInterface
 {
     /**
      * Reference to product objects that is being edited
@@ -43,29 +25,52 @@ class Downloadable
      */
     protected $_product = null;
 
+    /**
+     * @var \Magento\Framework\DataObject|null
+     */
     protected $_config = null;
 
+    /**
+     * @var string
+     */
     protected $_template = 'product/edit/downloadable.phtml';
+
+    /**
+     * Accordion block id
+     *
+     * @var string
+     */
+    protected $blockId = 'downloadableInfo';
 
     /**
      * Core registry
      *
-     * @var \Magento\Core\Model\Registry
+     * @var Registry
      */
     protected $_coreRegistry = null;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Model\Registry $registry
+     * @param Context $context
+     * @param Registry $registry
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
-        \Magento\Core\Model\Registry $registry,
-        array $data = array()
+        Context $context,
+        Registry $registry,
+        array $data = []
     ) {
         $this->_coreRegistry = $registry;
         parent::__construct($context, $data);
+    }
+
+    /**
+     * Get parent tab code
+     *
+     * @return string
+     */
+    public function getParentTab()
+    {
+        return 'product-details';
     }
 
     /**
@@ -91,7 +96,7 @@ class Downloadable
     /**
      * Get tab label
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getTabLabel()
     {
@@ -101,7 +106,7 @@ class Downloadable
     /**
      * Get tab title
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getTabTitle()
     {
@@ -133,37 +138,33 @@ class Downloadable
      */
     public function getGroupCode()
     {
-        return \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::ADVANCED_TAB_GROUP_CODE;
+        return Tabs::ADVANCED_TAB_GROUP_CODE;
     }
 
     /**
-     * Render block HTML
+     * Get downloadable tab content id
      *
      * @return string
      */
-    protected function _toHtml()
+    public function getContentTabId()
     {
-        $accordion = $this->getLayout()->createBlock('Magento\Adminhtml\Block\Widget\Accordion')
-            ->setId('downloadableInfo');
+        return 'tab_content_' . $this->blockId;
+    }
 
-        $accordion->addItem('samples', array(
-            'title'   => __('Samples'),
-            'content' => $this->getLayout()
-                ->createBlock('Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable\Samples')
-                ->toHtml(),
-            'open'    => false,
-        ));
+    /**
+     * @return bool
+     */
+    public function isDownloadable()
+    {
+        return $this->getProduct()->getTypeId() == \Magento\Downloadable\Model\Product\Type::TYPE_DOWNLOADABLE;
+    }
 
-        $accordion->addItem('links', array(
-            'title'   => __('Links'),
-            'content' => $this->getLayout()->createBlock(
-                'Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable\Links',
-                'catalog.product.edit.tab.downloadable.links')->toHtml(),
-            'open'    => true,
-        ));
-
-        $this->setChild('accordion', $accordion);
-
-        return parent::_toHtml();
+    /**
+     * @return $this
+     */
+    protected function _prepareLayout()
+    {
+        $this->setData('opened', $this->isDownloadable());
+        return parent::_prepareLayout();
     }
 }

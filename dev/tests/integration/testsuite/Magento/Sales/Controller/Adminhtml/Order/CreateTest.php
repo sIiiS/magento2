@@ -1,37 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
-
 namespace Magento\Sales\Controller\Adminhtml\Order;
 
 /**
  * @magentoAppArea adminhtml
+ * @magentoDbIsolation enabled
  */
-class CreateTest extends \Magento\Backend\Utility\Controller
+class CreateTest extends \Magento\TestFramework\TestCase\AbstractBackendController
 {
     public function testLoadBlockAction()
     {
@@ -46,14 +24,17 @@ class CreateTest extends \Magento\Backend\Utility\Controller
      */
     public function testLoadBlockActionData()
     {
-        \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Sales\Model\AdminOrder\Create')
-            ->addProducts(array(1 => array('qty' => 1)));
+        $this->_objectManager->get(
+            'Magento\Sales\Model\AdminOrder\Create'
+        )->addProducts(
+            [1 => ['qty' => 1]]
+        );
         $this->getRequest()->setParam('block', 'data');
         $this->getRequest()->setParam('json', 1);
         $this->dispatch('backend/sales/order_create/loadBlock');
         $html = $this->getResponse()->getBody();
-        $this->assertContains('<div id=\"sales_order_create_search_grid\">', $html);
-        $this->assertContains('<div id=\"order-billing_method_form\">', $html);
+        $this->assertContains('<div id=\"sales_order_create_search_grid\"', $html);
+        $this->assertContains('<div id=\"order-billing_method_form\"', $html);
         $this->assertContains('id=\"shipping-method-overlay\"', $html);
         $this->assertContains('id=\"coupons:code\"', $html);
     }
@@ -72,13 +53,13 @@ class CreateTest extends \Magento\Backend\Utility\Controller
 
     public function loadBlockActionsDataProvider()
     {
-        return array(
-            'shipping_method' => array('shipping_method', 'id=\"shipping-method-overlay\"'),
-            'billing_method' => array('billing_method', '<div id=\"order-billing_method_form\">'),
-            'newsletter' => array('newsletter', 'name=\"newsletter:subscribe\"'),
-            'search' => array('search', '<div id=\"sales_order_create_search_grid\">'),
-            'search_grid' => array('search', '<div id=\"sales_order_create_search_grid\">'),
-        );
+        return [
+            'shipping_method' => ['shipping_method', 'id=\"shipping-method-overlay\"'],
+            'billing_method' => ['billing_method', '<div id=\"order-billing_method_form\">'],
+            'newsletter' => ['newsletter', 'name=\"newsletter:subscribe\"'],
+            'search' => ['search', '<div id=\"sales_order_create_search_grid\"'],
+            'search_grid' => ['search', '<div id=\"sales_order_create_search_grid\"']
+        ];
     }
 
     /**
@@ -86,8 +67,11 @@ class CreateTest extends \Magento\Backend\Utility\Controller
      */
     public function testLoadBlockActionItems()
     {
-        \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Sales\Model\AdminOrder\Create')
-            ->addProducts(array(1 => array('qty' => 1)));
+        $this->_objectManager->get(
+            'Magento\Sales\Model\AdminOrder\Create'
+        )->addProducts(
+            [1 => ['qty' => 1]]
+        );
         $this->getRequest()->setParam('block', 'items');
         $this->getRequest()->setParam('json', 1);
         $this->dispatch('backend/sales/order_create/loadBlock');
@@ -102,16 +86,98 @@ class CreateTest extends \Magento\Backend\Utility\Controller
     public function testIndexAction()
     {
         /** @var $order \Magento\Sales\Model\AdminOrder\Create */
-        $order = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\Sales\Model\AdminOrder\Create');
-        $order->addProducts(array(1 => array('qty' => 1)));
+        $order = $this->_objectManager->get('Magento\Sales\Model\AdminOrder\Create');
+        $order->addProducts([1 => ['qty' => 1]]);
         $this->dispatch('backend/sales/order_create/index');
         $html = $this->getResponse()->getBody();
-        $this->assertContains('<div id="order-customer-selector"', $html);
-        $this->assertContains('<div id="sales_order_create_customer_grid">', $html);
-        $this->assertContains('<div id="order-billing_method_form">', $html);
-        $this->assertContains('id="shipping-method-overlay"', $html);
-        $this->assertContains('<div id="sales_order_create_search_grid">', $html);
-        $this->assertContains('id="coupons:code"', $html);
+
+        $this->assertSelectCount('div#order-customer-selector', true, $html);
+        $this->assertSelectCount('[data-grid-id=sales_order_create_customer_grid]', true, $html);
+        $this->assertSelectCount('div#order-billing_method_form', true, $html);
+        $this->assertSelectCount('#shipping-method-overlay', true, $html);
+        $this->assertSelectCount('div#sales_order_create_search_grid', true, $html);
+        $this->assertSelectCount('#coupons:code', true, $html);
+    }
+
+    /**
+     * @param string $actionName
+     * @param boolean $reordered
+     * @param string $expectedResult
+     *
+     * @dataProvider getAclResourceDataProvider
+     * @magentoAppIsolation enabled
+     */
+    public function testGetAclResource($actionName, $reordered, $expectedResult)
+    {
+        $this->_objectManager->get('Magento\Backend\Model\Session\Quote')->setReordered($reordered);
+        $orderController = $this->_objectManager->get(
+            'Magento\Sales\Controller\Adminhtml\Order\Stub\OrderCreateStub'
+        );
+
+        $this->getRequest()->setActionName($actionName);
+
+        $method = new \ReflectionMethod('\Magento\Sales\Controller\Adminhtml\Order\Create', '_getAclResource');
+        $method->setAccessible(true);
+        $result = $method->invoke($orderController);
+        $this->assertEquals($result, $expectedResult);
+    }
+
+    /**
+     * @return array
+     */
+    public function getAclResourceDataProvider()
+    {
+        return [
+            ['index', false, 'Magento_Sales::create'],
+            ['index', true, 'Magento_Sales::reorder'],
+            ['save', false, 'Magento_Sales::create'],
+            ['save', true, 'Magento_Sales::reorder'],
+            ['reorder', false, 'Magento_Sales::reorder'],
+            ['reorder', true, 'Magento_Sales::reorder'],
+            ['cancel', false, 'Magento_Sales::cancel'],
+            ['cancel', true, 'Magento_Sales::reorder'],
+            ['', false, 'Magento_Sales::actions'],
+            ['', true, 'Magento_Sales::actions']
+        ];
+    }
+
+    /**
+     * @magentoDataFixture Magento/ConfigurableProduct/_files/product_configurable.php
+     * @magentoAppArea adminhtml
+     */
+    public function testConfigureProductToAddAction()
+    {
+        $this->getRequest()->setParam('id', 1)
+            ->setParam('isAjax', true);
+
+        $this->dispatch('backend/sales/order_create/configureProductToAdd');
+
+        $body = $this->getResponse()->getBody();
+
+        $this->assertNotEmpty($body);
+        $this->assertContains('><span>Quantity</span></label>', $body);
+        $this->assertContains('>Test Configurable</label>', $body);
+        $this->assertContains('"code":"test_configurable","label":"Test Configurable"', $body);
+        $this->assertContains('"productId":"1"', $body);
+    }
+
+    public function testDeniedSaveAction()
+    {
+        $this->_objectManager->configure(
+            [
+                'Magento\Backend\App\Action\Context' => [
+                    'arguments' => [
+                        'authorization' => [
+                            'instance' => 'Magento\Sales\Controller\Adminhtml\Order\AuthorizationMock',
+                        ],
+                    ],
+                ],
+            ]
+        );
+        \Magento\TestFramework\Helper\Bootstrap::getInstance()
+            ->loadArea('adminhtml');
+
+        $this->dispatch('backend/sales/order_create/save');
+        $this->assertEquals('403', $this->getResponse()->getHttpResponseCode());
     }
 }

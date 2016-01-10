@@ -1,49 +1,35 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Product form image field helper
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Helper\Form;
 
-class Image extends \Magento\Data\Form\Element\Image
+class Image extends \Magento\Framework\Data\Form\Element\Image
 {
+    /**
+     * @return bool|string
+     */
     protected function _getUrl()
     {
         $url = false;
         if ($this->getValue()) {
-            $url = $this->_urlBuilder->getBaseUrl('media') . 'catalog/product/' . $this->getValue();
+            $url = $this->_urlBuilder->getBaseUrl(
+                \Magento\Framework\UrlInterface::URL_TYPE_MEDIA
+            ) . 'catalog/product/' . $this->getValue();
         }
         return $url;
     }
-    
+
+    /**
+     * @return string
+     */
     protected function _getDeleteCheckbox()
     {
         $html = '';
@@ -53,8 +39,13 @@ class Image extends \Magento\Data\Form\Element\Image
             } else {
                 $inputField = '<input value="%s" id="%s_hidden" type="hidden" class="required-entry" />';
                 $html .= sprintf($inputField, $this->getValue(), $this->getHtmlId());
-                $html .= '<script type="text/javascript">
-                    syncOnchangeValue(\''.$this->getHtmlId().'\', \''.$this->getHtmlId().'_hidden\');
+                $html .= '<script>require(["prototype"], function(){
+                    syncOnchangeValue(\'' .
+                    $this->getHtmlId() .
+                    '\', \'' .
+                    $this->getHtmlId() .
+                    '_hidden\');
+                });
                 </script>';
             }
         } else {

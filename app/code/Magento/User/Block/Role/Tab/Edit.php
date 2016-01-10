@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Block\Role\Tab;
@@ -29,37 +11,38 @@ namespace Magento\User\Block\Role\Tab;
  *
  * @SuppressWarnings(PHPMD.LongVariable)
  */
-class Edit extends \Magento\Backend\Block\Widget\Form
-    implements \Magento\Backend\Block\Widget\Tab\TabInterface
+class Edit extends \Magento\Backend\Block\Widget\Form implements \Magento\Backend\Block\Widget\Tab\TabInterface
 {
-
+    /**
+     * @var string
+     */
     protected $_template = 'role/edit.phtml';
 
     /**
      * Root ACL Resource
      *
-     * @var \Magento\Core\Model\Acl\RootResource
+     * @var \Magento\Framework\Acl\RootResource
      */
     protected $_rootResource;
 
     /**
      * Rules collection factory
      *
-     * @var \Magento\User\Model\Resource\Rules\CollectionFactory
+     * @var \Magento\Authorization\Model\ResourceModel\Rules\CollectionFactory
      */
     protected $_rulesCollectionFactory;
 
     /**
      * Acl builder
      *
-     * @var \Magento\Acl\Builder
+     * @var \Magento\Authorization\Model\Acl\AclRetriever
      */
-    protected $_aclBuilder;
+    protected $_aclRetriever;
 
     /**
      * Acl resource provider
      *
-     * @var \Magento\Acl\Resource\ProviderInterface
+     * @var \Magento\Framework\Acl\AclResource\ProviderInterface
      */
     protected $_aclResourceProvider;
 
@@ -68,23 +51,23 @@ class Edit extends \Magento\Backend\Block\Widget\Form
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Model\Acl\RootResource $rootResource
-     * @param \Magento\User\Model\Resource\Rules\CollectionFactory $rulesCollectionFactory
-     * @param \Magento\Acl\Builder $aclBuilder
-     * @param \Magento\Acl\Resource\ProviderInterface $aclResourceProvider
+     * @param \Magento\Framework\Acl\RootResource $rootResource
+     * @param \Magento\Authorization\Model\ResourceModel\Rules\CollectionFactory $rulesCollectionFactory
+     * @param \Magento\Authorization\Model\Acl\AclRetriever $aclRetriever
+     * @param \Magento\Framework\Acl\AclResource\ProviderInterface $aclResourceProvider
      * @param \Magento\Integration\Helper\Data $integrationData
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Core\Model\Acl\RootResource $rootResource,
-        \Magento\User\Model\Resource\Rules\CollectionFactory $rulesCollectionFactory,
-        \Magento\Acl\Builder $aclBuilder,
-        \Magento\Acl\Resource\ProviderInterface $aclResourceProvider,
+        \Magento\Framework\Acl\RootResource $rootResource,
+        \Magento\Authorization\Model\ResourceModel\Rules\CollectionFactory $rulesCollectionFactory,
+        \Magento\Authorization\Model\Acl\AclRetriever $aclRetriever,
+        \Magento\Framework\Acl\AclResource\ProviderInterface $aclResourceProvider,
         \Magento\Integration\Helper\Data $integrationData,
-        array $data = array()
+        array $data = []
     ) {
-        $this->_aclBuilder = $aclBuilder;
+        $this->_aclRetriever = $aclRetriever;
         $this->_rootResource = $rootResource;
         $this->_rulesCollectionFactory = $rulesCollectionFactory;
         $this->_aclResourceProvider = $aclResourceProvider;
@@ -95,7 +78,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form
     /**
      * Get tab label
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getTabLabel()
     {
@@ -134,32 +117,21 @@ class Edit extends \Magento\Backend\Block\Widget\Form
 
     /**
      * Class constructor
+     *
+     * @return void
      */
     protected function _construct()
     {
         parent::_construct();
 
         $rid = $this->_request->getParam('rid', false);
-
-        $acl = $this->_aclBuilder->getAcl();
-        $rulesSet = $this->_rulesCollectionFactory->create()->getByRoles($rid)->load();
-
-        $selectedResourceIds = array();
-
-        foreach ($rulesSet->getItems() as $item) {
-            $itemResourceId = $item->getResource_id();
-            if ($acl->has($itemResourceId) && $item->getPermission() == 'allow') {
-                $selectedResourceIds[] = $itemResourceId;
-            }
-        }
-
-        $this->setSelectedResources($selectedResourceIds);
+        $this->setSelectedResources($this->_aclRetriever->getAllowedResourcesByRole($rid));
     }
 
     /**
      * Check if everything is allowed
      *
-     * @return boolean
+     * @return bool
      */
     public function isEverythingAllowed()
     {
@@ -175,7 +147,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form
     {
         $resources = $this->_aclResourceProvider->getAclResources();
         $rootArray = $this->_integrationData->mapResources(
-            isset($resources[1]['children']) ? $resources[1]['children'] : array()
+            isset($resources[1]['children']) ? $resources[1]['children'] : []
         );
         return $rootArray;
     }

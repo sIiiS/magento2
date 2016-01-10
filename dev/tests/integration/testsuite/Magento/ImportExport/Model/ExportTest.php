@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_ImportExport
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\ImportExport\Model;
 
 class ExportTest extends \PHPUnit_Framework_TestCase
@@ -38,8 +16,9 @@ class ExportTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\ImportExport\Model\Export');
+        $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\ImportExport\Model\Export'
+        );
     }
 
     /**
@@ -52,11 +31,12 @@ class ExportTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetEntityAdapterWithValidEntity($entity, $expectedEntityType)
     {
-        $this->_model->setData(array(
-            'entity' => $entity
-        ));
+        $this->_model->setData(['entity' => $entity]);
         $this->_model->getEntityAttributeCollection();
-        $this->assertAttributeInstanceOf($expectedEntityType, '_entityAdapter', $this->_model,
+        $this->assertAttributeInstanceOf(
+            $expectedEntityType,
+            '_entityAdapter',
+            $this->_model,
             'Entity adapter property has wrong type'
         );
     }
@@ -66,33 +46,31 @@ class ExportTest extends \PHPUnit_Framework_TestCase
      */
     public function getEntityDataProvider()
     {
-        return array(
-            'product'            => array(
-                '$entity'             => 'catalog_product',
-                '$expectedEntityType' => 'Magento\ImportExport\Model\Export\Entity\Product'
-            ),
-            'customer main data' => array(
-                '$entity'             => 'customer',
-                '$expectedEntityType' => 'Magento\ImportExport\Model\Export\Entity\Eav\Customer'
-            ),
-            'customer address'   => array(
-                '$entity'             => 'customer_address',
-                '$expectedEntityType' => 'Magento\ImportExport\Model\Export\Entity\Eav\Customer\Address'
-            )
-        );
+        return [
+            'product' => [
+                '$entity' => 'catalog_product',
+                '$expectedEntityType' => 'Magento\CatalogImportExport\Model\Export\Product',
+            ],
+            'customer main data' => [
+                '$entity' => 'customer',
+                '$expectedEntityType' => 'Magento\CustomerImportExport\Model\Export\Customer',
+            ],
+            'customer address' => [
+                '$entity' => 'customer_address',
+                '$expectedEntityType' => 'Magento\CustomerImportExport\Model\Export\Address',
+            ]
+        ];
     }
 
     /**
      * Test method '_getEntityAdapter' in case when entity is invalid
      *
-     * @expectedException \Magento\Core\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @covers \Magento\ImportExport\Model\Export::_getEntityAdapter
      */
     public function testGetEntityAdapterWithInvalidEntity()
     {
-        $this->_model->setData(array(
-            'entity' => 'test'
-        ));
+        $this->_model->setData(['entity' => 'test']);
         $this->_model->getEntityAttributeCollection();
     }
 }

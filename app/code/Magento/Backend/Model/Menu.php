@@ -1,41 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Backend
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Backend\Model;
 
 /**
  * Backend menu model
  */
-namespace Magento\Backend\Model;
-
 class Menu extends \ArrayObject
 {
-    /**
-     * Name of special logger key for debugging building menu
-     */
-    const LOGGER_KEY = 'menu-debug';
-
     /**
      * Path in tree structure
      *
@@ -44,15 +18,15 @@ class Menu extends \ArrayObject
     protected $_path = '';
 
     /**
-     * @var \Magento\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
 
     /**
-     * @param \Magento\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param string $pathInMenuStructure
      */
-    public function __construct(\Magento\Logger $logger, $pathInMenuStructure = '')
+    public function __construct(\Psr\Log\LoggerInterface $logger, $pathInMenuStructure = '')
     {
         if ($pathInMenuStructure) {
             $this->_path = $pathInMenuStructure . '/';
@@ -67,11 +41,12 @@ class Menu extends \ArrayObject
      * @param \Magento\Backend\Model\Menu\Item $item
      * @param string $parentId
      * @param int $index
+     * @return void
      * @throws \InvalidArgumentException
      */
     public function add(\Magento\Backend\Model\Menu\Item $item, $parentId = null, $index = null)
     {
-        if (!is_null($parentId)) {
+        if ($parentId !== null) {
             $parentItem = $this->get($parentId);
             if ($parentItem === null) {
                 throw new \InvalidArgumentException("Item with identifier {$parentId} does not exist");
@@ -81,9 +56,8 @@ class Menu extends \ArrayObject
             $index = intval($index);
             if (!isset($this[$index])) {
                 $this->offsetSet($index, $item);
-                $this->_logger->logDebug(
-                    sprintf('Add of item with id %s was processed', $item->getId()),
-                    self::LOGGER_KEY
+                $this->_logger->info(
+                    sprintf('Add of item with id %s was processed', $item->getId())
                 );
             } else {
                 $this->add($item, $parentId, $index + 1);
@@ -120,6 +94,7 @@ class Menu extends \ArrayObject
      * @param string $itemId
      * @param string $toItemId
      * @param int $sortIndex
+     * @return void
      * @throws \InvalidArgumentException
      */
     public function move($itemId, $toItemId, $sortIndex = null)
@@ -146,9 +121,8 @@ class Menu extends \ArrayObject
             if ($item->getId() == $itemId) {
                 unset($this[$key]);
                 $result = true;
-                $this->_logger->logDebug(
-                    sprintf('Remove on item with id %s was processed', $item->getId()),
-                    self::LOGGER_KEY
+                $this->_logger->info(
+                    sprintf('Remove on item with id %s was processed', $item->getId())
                 );
                 break;
             }
@@ -177,7 +151,7 @@ class Menu extends \ArrayObject
                 $this->add($item, null, $position);
                 $result = true;
                 break;
-            } else if ($item->hasChildren() && $result = $item->getChildren()->reorder($itemId, $position)) {
+            } elseif ($item->hasChildren() && $result = $item->getChildren()->reorder($itemId, $position)) {
                 break;
             }
         }
@@ -208,7 +182,7 @@ class Menu extends \ArrayObject
             if ($item->isAllowed() && !$item->isDisabled()) {
                 if ($item->hasChildren()) {
                     $result = $item->getChildren()->getFirstAvailable();
-                    if (false == is_null($result)) {
+                    if (false == ($result === null)) {
                         break;
                     }
                 } else {
@@ -228,7 +202,7 @@ class Menu extends \ArrayObject
      */
     public function getParentItems($itemId)
     {
-        $parents = array();
+        $parents = [];
         $this->_findParentItems($this, $itemId, $parents);
         return array_reverse($parents);
     }
@@ -238,7 +212,7 @@ class Menu extends \ArrayObject
      *
      * @param \Magento\Backend\Model\Menu $menu
      * @param string $itemId
-     * @param array $parents
+     * @param array &$parents
      * @return bool
      */
     protected function _findParentItems($menu, $itemId, &$parents)

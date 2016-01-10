@@ -1,196 +1,333 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    tests
- * @package     static
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
+namespace Magento\Test\Php;
+
+use Magento\Framework\App\Utility;
+use Magento\TestFramework\CodingStandard\Tool\CodeMessDetector;
+use Magento\TestFramework\CodingStandard\Tool\CodeSniffer;
+use Magento\TestFramework\CodingStandard\Tool\CodeSniffer\Wrapper;
+use Magento\TestFramework\CodingStandard\Tool\CopyPasteDetector;
+use PHPMD\TextUI\Command;
+use PHPUnit_Framework_TestCase;
+use Magento\Framework\App\Utility\Files;
 
 /**
  * Set of tests for static code analysis, e.g. code style, code complexity, copy paste detecting, etc.
  */
-namespace Magento\Test\Php;
-
-class LiveCodeTest extends \PHPUnit_Framework_TestCase
+class LiveCodeTest extends PHPUnit_Framework_TestCase
 {
     /**
      * @var string
      */
-    protected static $_reportDir = '';
+    protected static $reportDir = '';
 
     /**
-     * @var array
+     * @var string
      */
-    protected static $_whiteList = array();
+    protected static $pathToSource = '';
 
     /**
-     * @var array
+     * Setup basics for all tests
+     *
+     * @return void
      */
-    protected static $_blackList = array();
-
     public static function setUpBeforeClass()
     {
-        self::$_reportDir = \Magento\TestFramework\Utility\Files::init()->getPathToSource()
-            . '/dev/tests/static/report';
-        if (!is_dir(self::$_reportDir)) {
-            mkdir(self::$_reportDir, 0777);
+        self::$pathToSource = Utility\Files::init()->getPathToSource();
+        self::$reportDir = self::$pathToSource . '/dev/tests/static/report';
+        if (!is_dir(self::$reportDir)) {
+            mkdir(self::$reportDir, 0770);
         }
-        self::setupFileLists();
-    }
-
-    public static function setupFileLists($type = '')
-    {
-        if ($type != '' && !preg_match('/\/$/', $type)) {
-            $type = $type . '/';
-        }
-        self::$_whiteList = self::_readLists(__DIR__ . '/_files/' . $type . 'whitelist/*.txt');
-        self::$_blackList = self::_readLists(__DIR__ . '/_files/' . $type . 'blacklist/*.txt');
     }
 
     /**
+     * Returns whitelist based on blacklist and git changed files
+     *
+     * @param array $fileTypes
+     * @return array
+     */
+    public static function getWhitelist($fileTypes = ['php'])
+    {
+        $directoriesToCheck = Files::init()->readLists(__DIR__ . '/_files/whitelist/common.txt');
+
+        $changedFiles = [];
+        foreach (glob(__DIR__ . '/_files/changed_files*') as $listFile) {
+            $changedFiles = array_merge($changedFiles, file($listFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
+        }
+        array_walk(
+            $changedFiles,
+            function (&$file) {
+                $file = BP . '/' . $file;
+            }
+        );
+        $changedFiles = array_filter(
+            $changedFiles,
+            function ($path) use ($directoriesToCheck, $fileTypes) {
+                if (!file_exists($path)) {
+                    return false;
+                }
+                $path = realpath($path);
+                foreach ($directoriesToCheck as $directory) {
+                    $directory = realpath($directory);
+                    if (strpos($path, $directory) === 0) {
+                        if (!empty($fileTypes)) {
+                            return in_array(pathinfo($path, PATHINFO_EXTENSION), $fileTypes);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+        );
+
+        return $changedFiles;
+    }
+
+    /**
+     * Run the PSR2 code sniffs on the code
+     *
      * @TODO: combine with testCodeStyle
+     * @return void
      */
     public function testCodeStylePsr2()
     {
-        $reportFile = self::$_reportDir . '/phpcs_psr2_report.xml';
-        $wrapper = new \Magento\TestFramework\CodingStandard\Tool\CodeSniffer\Wrapper();
-        $codeSniffer = new \Magento\TestFramework\CodingStandard\Tool\CodeSniffer(
-            'PSR2',
-            $reportFile,
-            $wrapper
-        );
+        $reportFile = self::$reportDir . '/phpcs_psr2_report.xml';
+        $wrapper = new Wrapper();
+        $codeSniffer = new CodeSniffer('PSR2', $reportFile, $wrapper);
         if (!$codeSniffer->canRun()) {
             $this->markTestSkipped('PHP Code Sniffer is not installed.');
         }
-        if (version_compare($codeSniffer->version(), '1.4.7') === -1) {
+        if (version_compare($wrapper->version(), '1.4.7') === -1) {
             $this->markTestSkipped('PHP Code Sniffer Build Too Old.');
         }
-        self::setupFileLists('phpcs');
-        $result = $codeSniffer->run(self::$_whiteList, self::$_blackList, array('php'));
-        $this->assertFileExists(
-            $reportFile,
-            'Expected ' . $reportFile . ' to be created by phpcs run with PSR2 standard'
-        );
-        $this->markTestIncomplete("PHP Code Sniffer has found $result error(s): See detailed report in $reportFile");
+
+        $result = $codeSniffer->run(self::getWhitelist());
+
         $this->assertEquals(
             0,
             $result,
-            "PHP Code Sniffer has found $result error(s): See detailed report in $reportFile"
+            "PHP Code Sniffer has found {$result} error(s): See detailed report in {$reportFile}"
         );
     }
 
+    /**
+     * Run the magento specific coding standards on the code
+     *
+     * @return void
+     */
     public function testCodeStyle()
     {
-        $reportFile = self::$_reportDir . '/phpcs_report.xml';
-        $wrapper = new \Magento\TestFramework\CodingStandard\Tool\CodeSniffer\Wrapper();
-        $codeSniffer = new \Magento\TestFramework\CodingStandard\Tool\CodeSniffer(
-            realpath(__DIR__ . '/_files/phpcs'),
+        $reportFile = self::$reportDir . '/phpcs_report.xml';
+        $wrapper = new Wrapper();
+        $codeSniffer = new CodeSniffer(realpath(__DIR__ . '/_files/phpcs'), $reportFile, $wrapper);
+        if (!$codeSniffer->canRun()) {
+            $this->markTestSkipped('PHP Code Sniffer is not installed.');
+        }
+        $codeSniffer->setExtensions(['php', 'phtml']);
+        $result = $codeSniffer->run(self::getWhitelist(['php', 'phtml']));
+        $this->assertEquals(
+            0,
+            $result,
+            "PHP Code Sniffer has found {$result} error(s): See detailed report in {$reportFile}"
+        );
+    }
+
+    /**
+     * Run the annotations sniffs on the code
+     *
+     * @return void
+     * @todo Combine with normal code style at some point.
+     */
+    public function testAnnotationStandard()
+    {
+        $reportFile = self::$reportDir . '/phpcs_annotations_report.xml';
+        $wrapper = new Wrapper();
+        $codeSniffer = new CodeSniffer(
+            realpath(__DIR__ . '/../../../../framework/Magento/ruleset.xml'),
             $reportFile,
             $wrapper
         );
         if (!$codeSniffer->canRun()) {
             $this->markTestSkipped('PHP Code Sniffer is not installed.');
         }
-        self::setupFileLists();
-        $result = $codeSniffer->run(self::$_whiteList, self::$_blackList, array('php', 'phtml'));
+
+        $result = $codeSniffer->run(self::getWhitelist(['php']));
         $this->assertEquals(
             0,
             $result,
-            "PHP Code Sniffer has found $result error(s): See detailed report in $reportFile"
+            "PHP Code Sniffer has found {$result} error(s): See detailed report in {$reportFile}"
         );
     }
 
+    /**
+     * Run mess detector on code
+     *
+     * @return void
+     */
     public function testCodeMess()
     {
-        $reportFile = self::$_reportDir . '/phpmd_report.xml';
-        $codeMessDetector = new \Magento\TestFramework\CodingStandard\Tool\CodeMessDetector(
-            realpath(__DIR__ . '/_files/phpmd/ruleset.xml'),
-            $reportFile
-        );
+        $reportFile = self::$reportDir . '/phpmd_report.xml';
+        $codeMessDetector = new CodeMessDetector(realpath(__DIR__ . '/_files/phpmd/ruleset.xml'), $reportFile);
 
         if (!$codeMessDetector->canRun()) {
             $this->markTestSkipped('PHP Mess Detector is not available.');
         }
 
-        self::setupFileLists();
         $this->assertEquals(
-            \PHP_PMD_TextUI_Command::EXIT_SUCCESS,
-            $codeMessDetector->run(self::$_whiteList, self::$_blackList),
-            "PHP Code Mess has found error(s): See detailed report in $reportFile"
+            Command::EXIT_SUCCESS,
+            $codeMessDetector->run(self::getWhitelist(['php'])),
+            "PHP Code Mess has found error(s): See detailed report in {$reportFile}"
         );
+
+        // delete empty reports
+        if (file_exists($reportFile)) {
+            unlink($reportFile);
+        }
     }
 
+    /**
+     * Run copy paste detector on code
+     *
+     * @return void
+     */
     public function testCopyPaste()
     {
-        $reportFile = self::$_reportDir . '/phpcpd_report.xml';
-        $copyPasteDetector = new \Magento\TestFramework\CodingStandard\Tool\CopyPasteDetector($reportFile);
+        $reportFile = self::$reportDir . '/phpcpd_report.xml';
+        $copyPasteDetector = new CopyPasteDetector($reportFile);
 
         if (!$copyPasteDetector->canRun()) {
             $this->markTestSkipped('PHP Copy/Paste Detector is not available.');
         }
 
-        self::setupFileLists();
-        $blackList = array();
+        $blackList = [];
         foreach (glob(__DIR__ . '/_files/phpcpd/blacklist/*.txt') as $list) {
             $blackList = array_merge($blackList, file($list, FILE_IGNORE_NEW_LINES));
         }
 
+        $copyPasteDetector->setBlackList($blackList);
+
         $this->assertTrue(
-            $copyPasteDetector->run(array(), $blackList),
-            "PHP Copy/Paste Detector has found error(s): See detailed report in $reportFile"
+            $copyPasteDetector->run([BP]),
+            "PHP Copy/Paste Detector has found error(s): See detailed report in {$reportFile}"
         );
     }
 
-    /**
-     * Read all text files by specified glob pattern and combine them into an array of valid files/directories
-     *
-     * The Magento root path is prepended to all (non-empty) entries
-     *
-     * @param string $globPattern
-     * @return array
-     * @throws \Exception if any of the patterns don't return any result
-     */
-    protected static function _readLists($globPattern)
+    public function testDeadCode()
     {
-        $patterns = array();
-        foreach (glob($globPattern) as $list) {
-            $patterns = array_merge($patterns, file($list, FILE_IGNORE_NEW_LINES));
+        if (!class_exists('SebastianBergmann\PHPDCD\Analyser')) {
+            $this->markTestSkipped('PHP Dead Code Detector is not available.');
+        }
+        $analyser = new \SebastianBergmann\PHPDCD\Analyser();
+        $declared = [];
+        $called = [];
+        $collectedFiles = Files::init()->getPhpFiles(
+            Files::INCLUDE_APP_CODE
+            | Files::INCLUDE_PUB_CODE
+            | Files::INCLUDE_LIBS
+            | Files::INCLUDE_TEMPLATES
+            | Files::INCLUDE_TESTS
+            | Files::AS_DATA_SET
+            | Files::INCLUDE_NON_CLASSES
+        );
+        foreach ($collectedFiles as $file) {
+            $file = array_pop($file);
+            $analyser->analyseFile($file);
+            foreach ($analyser->getFunctionDeclarations() as $function => $declaration) {
+                $declaration = $declaration; //avoid "unused local variable" error and non-effective array_keys call
+                if (strpos($function, '::') === false) {
+                    $method = $function;
+                } else {
+                    list($class, $method) = explode('::', $function);
+                }
+                $declared[$method] = $function;
+            }
+            foreach ($analyser->getFunctionCalls() as $function => $usages) {
+                $usages = $usages; //avoid "unused local variable" error and non-effective array_keys call
+                if (strpos($function, '::') === false) {
+                    $method = $function;
+                } else {
+                    list($class, $method) = explode('::', $function);
+                }
+                $called[$method] = 1;
+            }
         }
 
-        // Expand glob patterns
-        $result = array();
-        foreach ($patterns as $pattern) {
-            if (0 === strpos($pattern, '#')) {
-                continue;
-            }
-            /**
-             * Note that glob() for directories will be returned as is,
-             * but passing directory is supported by the tools (phpcpd, phpmd, phpcs)
-             */
-            $files = glob(\Magento\TestFramework\Utility\Files::init()->getPathToSource() . '/' . $pattern, GLOB_BRACE);
-            if (empty($files)) {
-                throw new \Exception("The glob() pattern '{$pattern}' didn't return any result.");
-            }
-            $result = array_merge($result, $files);
+        foreach ($called as $method => $value) {
+            $value = $value; //avoid "unused local variable" error and non-effective array_keys call
+            unset($declared[$method]);
         }
-        return $result;
+        $declared = $this->filterUsedObserverMethods($declared);
+        $declared = $this->filterUsedPersistentObserverMethods($declared);
+        $declared = $this->filterUsedCrontabObserverMethods($declared);
+        if ($declared) {
+            $this->fail('Dead code detected:' . PHP_EOL . implode(PHP_EOL, $declared));
+        }
+    }
+
+    /**
+     * @param string[] $methods
+     * @return string[]
+     * @throws \Exception
+     */
+    private function filterUsedObserverMethods($methods)
+    {
+        foreach (Files::init()->getConfigFiles('{*/events.xml,events.xml}') as $file) {
+            $file = array_pop($file);
+
+            $doc = new \DOMDocument();
+            $doc->load($file);
+            foreach ($doc->getElementsByTagName('observer') as $observer) {
+                /** @var \DOMElement $observer */
+                $method = $observer->getAttribute('method');
+                unset($methods[$method]);
+            }
+        }
+        return $methods;
+    }
+
+    /**
+     * @param string[] $methods
+     * @return string[]
+     * @throws \Exception
+     */
+    private function filterUsedPersistentObserverMethods($methods)
+    {
+        foreach (Files::init()->getConfigFiles('{*/persistent.xml,persistent.xml}') as $file) {
+            $file = array_pop($file);
+
+            $doc = new \DOMDocument();
+            $doc->load($file);
+            foreach ($doc->getElementsByTagName('method') as $method) {
+                /** @var \DOMElement $method */
+                unset($methods[$method->textContent]);
+            }
+        }
+        return $methods;
+    }
+
+    /**
+     * @param string[] $methods
+     * @return string[]
+     * @throws \Exception
+     */
+    private function filterUsedCrontabObserverMethods($methods)
+    {
+        foreach (Files::init()->getConfigFiles('{*/crontab.xml,crontab.xml}') as $file) {
+            $file = array_pop($file);
+
+            $doc = new \DOMDocument();
+            $doc->load($file);
+            foreach ($doc->getElementsByTagName('job') as $job) {
+                /** @var \DOMElement $job */
+                unset($methods[$job->getAttribute('method')]);
+            }
+        }
+        return $methods;
     }
 }

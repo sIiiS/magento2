@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Test\TestCase;
 
 /**
@@ -34,33 +12,34 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
 {
     protected $_bootstrap;
 
+    /** @var \PHPUnit_Framework_MockObject_MockObject | \Magento\Framework\Message\Manager */
+    private $messageManager;
+
     protected function setUp()
     {
-        // emulate session messages
-        $messagesCollection = new \Magento\Message\Collection();
-        $messagesCollection
-            ->add(new \Magento\Message\Warning('some_warning'))
-            ->add(new \Magento\Message\Error('error_one'))
-            ->add(new \Magento\Message\Error('error_two'))
-            ->add(new \Magento\Message\Notice('some_notice'))
-        ;
-        $session = new \Magento\Object(array('messages' => $messagesCollection));
-        $request = new \Magento\TestFramework\Request(
-            $this->getMock('\Magento\App\Route\ConfigInterface', array(), array(), '', false),
-            $this->getMock('Magento\App\Request\PathInfoProcessorInterface', array(), array(), '', false)
-        );
-        $response = new \Magento\TestFramework\Response();
+        $testObjectManager = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
 
+        $this->messageManager = $this->getMock('\Magento\Framework\Message\Manager', [], [], '', false);
+        $request = $testObjectManager->getObject('Magento\TestFramework\Request');
+        $response = $testObjectManager->getObject('Magento\TestFramework\Response');
         $this->_objectManager = $this->getMock(
-            'Magento\TestFramework\ObjectManager', array('get', 'create'), array(), '', false
+            'Magento\TestFramework\ObjectManager',
+            ['get', 'create'],
+            [],
+            '',
+            false
         );
         $this->_objectManager->expects($this->any())
             ->method('get')
-            ->will($this->returnValueMap(array(
-                array('Magento\App\RequestInterface', $request),
-                array('Magento\App\ResponseInterface', $response),
-                array('Magento\Core\Model\Session', $session),
-            )));
+            ->will(
+                $this->returnValueMap(
+                    [
+                        ['Magento\Framework\App\RequestInterface', $request],
+                        ['Magento\Framework\App\ResponseInterface', $response],
+                        ['Magento\Framework\Message\Manager', $this->messageManager],
+                    ]
+                )
+            );
     }
 
     /**
@@ -73,7 +52,12 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
     {
         if (!$this->_bootstrap) {
             $this->_bootstrap = $this->getMock(
-                'Magento\TestFramework\Bootstrap', array('getAllOptions'), array(), '', false);
+                'Magento\TestFramework\Bootstrap',
+                ['getAllOptions'],
+                [],
+                '',
+                false
+            );
         }
         return $this->_bootstrap;
     }
@@ -124,11 +108,11 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
     public function testAssertRedirect()
     {
         /*
-         * Prevent calling \Magento\App\Response\Http::setRedirect() because it dispatches event,
+         * Prevent calling \Magento\Framework\App\Response\Http::setRedirect() because it dispatches event,
          * which requires fully initialized application environment intentionally not available
          * for unit tests
          */
-        $setRedirectMethod = new \ReflectionMethod('Zend_Controller_Response_Http', 'setRedirect');
+        $setRedirectMethod = new \ReflectionMethod('Magento\Framework\App\Response\Http', 'setRedirect');
         $setRedirectMethod->invoke($this->getResponse(), 'http://magentocommerce.com');
         $this->assertRedirect();
         $this->assertRedirect($this->equalTo('http://magentocommerce.com'));
@@ -141,30 +125,72 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
      */
     public function testAssertSessionMessagesSuccess(array $expectedMessages, $messageTypeFilter)
     {
-        $constraint = $this->getMock('PHPUnit_Framework_Constraint', array('toString', 'matches'));
-        $constraint
-            ->expects($this->once())
-            ->method('matches')
+        $this->addSessionMessages();
+        /** @var \PHPUnit_Framework_MockObject_MockObject|\PHPUnit_Framework_Constraint $constraint */
+        $constraint = $this->getMock('PHPUnit_Framework_Constraint', ['toString', 'matches']);
+        $constraint->expects(
+            $this->once()
+        )->method('matches')
             ->with($expectedMessages)
-            ->will($this->returnValue(true))
-        ;
+            ->will($this->returnValue(true));
         $this->assertSessionMessages($constraint, $messageTypeFilter);
     }
 
     public function assertSessionMessagesDataProvider()
     {
-        return array(
-            'no message type filtering' => array(array('some_warning', 'error_one', 'error_two', 'some_notice'), null),
-            'message type filtering'    => array(array('error_one', 'error_two'), \Magento\Message\Factory::ERROR),
+        return [
+            'message waning type filtering' => [
+                ['some_warning'],
+                \Magento\Framework\Message\MessageInterface::TYPE_WARNING,
+            ],
+            'message error type filtering' => [
+                ['error_one', 'error_two'],
+                \Magento\Framework\Message\MessageInterface::TYPE_ERROR,
+            ],
+            'message success type filtering'    => [
+                ['success!'],
+                \Magento\Framework\Message\MessageInterface::TYPE_SUCCESS,
+            ],
+        ];
+    }
+
+    public function testAssertSessionMessagesAll()
+    {
+        $this->addSessionMessages();
+
+        $this->assertSessionMessages(
+            $this->equalTo(
+                [
+                    'some_warning',
+                    'error_one',
+                    'error_two',
+                    'some_notice',
+                    'success!',
+                ]
+            )
         );
     }
 
-    /**
-     * @expectedException \PHPUnit_Framework_ExpectationFailedException
-     * @expectedExceptionMessage Session messages do not meet expectations
-     */
-    public function testAssertSessionMessagesFailure()
+    public function testAssertSessionMessagesEmpty()
     {
+        $messagesCollection =  new \Magento\Framework\Message\Collection();
+        $this->messageManager->expects($this->any())->method('getMessages')
+            ->will($this->returnValue($messagesCollection));
+
         $this->assertSessionMessages($this->isEmpty());
+    }
+
+    private function addSessionMessages()
+    {
+        // emulate session messages
+        $messagesCollection = new \Magento\Framework\Message\Collection();
+        $messagesCollection
+            ->addMessage(new \Magento\Framework\Message\Warning('some_warning'))
+            ->addMessage(new \Magento\Framework\Message\Error('error_one'))
+            ->addMessage(new \Magento\Framework\Message\Error('error_two'))
+            ->addMessage(new \Magento\Framework\Message\Notice('some_notice'))
+            ->addMessage(new \Magento\Framework\Message\Success('success!'));
+        $this->messageManager->expects($this->any())->method('getMessages')
+            ->will($this->returnValue($messagesCollection));
     }
 }

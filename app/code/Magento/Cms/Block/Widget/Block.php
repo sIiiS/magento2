@@ -1,40 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Cms
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
+namespace Magento\Cms\Block\Widget;
 
 /**
  * Cms Static Block Widget
  *
- * @category   Magento
- * @package    Magento_Cms
  * @author     Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Cms\Block\Widget;
-
-class Block extends \Magento\View\Element\Template implements \Magento\Widget\Block\BlockInterface
+class Block extends \Magento\Framework\View\Element\Template implements \Magento\Widget\Block\BlockInterface
 {
     /**
      * @var \Magento\Cms\Model\Template\FilterProvider
@@ -46,7 +22,7 @@ class Block extends \Magento\View\Element\Template implements \Magento\Widget\Bl
      *
      * @var array
      */
-    static protected $_widgetUsageMap = array();
+    protected static $_widgetUsageMap = [];
 
     /**
      * Block factory
@@ -56,16 +32,16 @@ class Block extends \Magento\View\Element\Template implements \Magento\Widget\Bl
     protected $_blockFactory;
 
     /**
-     * @param \Magento\View\Element\Template\Context $context
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Cms\Model\Template\FilterProvider $filterProvider
      * @param \Magento\Cms\Model\BlockFactory $blockFactory
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Cms\Model\Template\FilterProvider $filterProvider,
         \Magento\Cms\Model\BlockFactory $blockFactory,
-        array $data = array()
+        array $data = []
     ) {
         parent::__construct($context, $data);
         $this->_filterProvider = $filterProvider;
@@ -76,7 +52,7 @@ class Block extends \Magento\View\Element\Template implements \Magento\Widget\Bl
      * Prepare block text and determine whether block output enabled or not
      * Prevent blocks recursion if needed
      *
-     * @return \Magento\Cms\Block\Widget\Block
+     * @return $this
      */
     protected function _beforeToHtml()
     {
@@ -93,9 +69,8 @@ class Block extends \Magento\View\Element\Template implements \Magento\Widget\Bl
             $storeId = $this->_storeManager->getStore()->getId();
             /** @var \Magento\Cms\Model\Block $block */
             $block = $this->_blockFactory->create();
-            $block->setStoreId($storeId)
-                ->load($blockId);
-            if ($block->getIsActive()) {
+            $block->setStoreId($storeId)->load($blockId);
+            if ($block->isActive()) {
                 $this->setText(
                     $this->_filterProvider->getBlockFilter()->setStoreId($storeId)->filter($block->getContent())
                 );

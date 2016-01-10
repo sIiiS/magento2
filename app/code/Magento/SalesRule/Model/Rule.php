@@ -1,35 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_SalesRule
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\SalesRule\Model;
 
+use Magento\Quote\Model\Quote\Address;
 
 /**
  * Shopping Cart Rule data model
  *
- * @method \Magento\SalesRule\Model\Resource\Rule _getResource()
- * @method \Magento\SalesRule\Model\Resource\Rule getResource()
+ * @method \Magento\SalesRule\Model\ResourceModel\Rule _getResource()
+ * @method \Magento\SalesRule\Model\ResourceModel\Rule getResource()
  * @method string getName()
  * @method \Magento\SalesRule\Model\Rule setName(string $value)
  * @method string getDescription()
@@ -65,8 +47,6 @@
  * @method \Magento\SalesRule\Model\Rule setDiscountQty(float $value)
  * @method int getDiscountStep()
  * @method \Magento\SalesRule\Model\Rule setDiscountStep(int $value)
- * @method int getSimpleFreeShipping()
- * @method \Magento\SalesRule\Model\Rule setSimpleFreeShipping(int $value)
  * @method int getApplyToShipping()
  * @method \Magento\SalesRule\Model\Rule setApplyToShipping(int $value)
  * @method int getTimesUsed()
@@ -81,40 +61,34 @@
  * @method \Magento\SalesRule\Model\Rule setUseAutoGeneration(int $value)
  * @method string getCouponCode()
  * @method \Magento\SalesRule\Model\Rule setCouponCode(string $value)
- *
- * @category    Magento
- * @package     Magento_SalesRule
- * @author      Magento Core Team <core@magentocommerce.com>
+ * @method int getRuleId()
+ * @method \Magento\SalesRule\Model\Rule setRuleId(int $ruleId)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-namespace Magento\SalesRule\Model;
-
 class Rule extends \Magento\Rule\Model\AbstractModel
 {
-    /**
-     * Free Shipping option "For matching items only"
-     */
-    const FREE_SHIPPING_ITEM    = 1;
-
-    /**
-     * Free Shipping option "For shipment with matching items"
-     */
-    const FREE_SHIPPING_ADDRESS = 2;
-
     /**
      * Coupon types
      */
     const COUPON_TYPE_NO_COUPON = 1;
-    const COUPON_TYPE_SPECIFIC  = 2;
-    const COUPON_TYPE_AUTO      = 3;
+
+    const COUPON_TYPE_SPECIFIC = 2;
+
+    const COUPON_TYPE_AUTO = 3;
 
     /**
      * Rule type actions
      */
     const TO_PERCENT_ACTION = 'to_percent';
+
     const BY_PERCENT_ACTION = 'by_percent';
-    const TO_FIXED_ACTION   = 'to_fixed';
-    const BY_FIXED_ACTION   = 'by_fixed';
+
+    const TO_FIXED_ACTION = 'to_fixed';
+
+    const BY_FIXED_ACTION = 'by_fixed';
+
     const CART_FIXED_ACTION = 'cart_fixed';
+
     const BUY_X_GET_Y_ACTION = 'buy_x_get_y';
 
     /**
@@ -141,15 +115,6 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected $_eventObject = 'rule';
 
     /**
-     * Contain sores labels
-     *
-     * @deprecated after 1.6.2.0
-     *
-     * @var array
-     */
-    protected $_labels = array();
-
-    /**
      * Rule's primary coupon
      *
      * @var \Magento\SalesRule\Model\Coupon
@@ -159,7 +124,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Rule's subordinate coupons
      *
-     * @var array of \Magento\SalesRule\Model\Coupon
+     * @var \Magento\SalesRule\Model\Coupon[]
      */
     protected $_coupons;
 
@@ -175,7 +140,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      *
      * @var array
      */
-    protected $_validatedAddresses = array();
+    protected $_validatedAddresses = [];
 
     /**
      * @var \Magento\SalesRule\Model\CouponFactory
@@ -198,44 +163,45 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected $_condProdCombineF;
 
     /**
-     * @var \Magento\SalesRule\Model\Resource\Coupon\Collection
+     * @var \Magento\SalesRule\Model\ResourceModel\Coupon\Collection
      */
     protected $_couponCollection;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @param \Magento\Core\Model\Context $context
-     * @param \Magento\Core\Model\Registry $registry
-     * @param \Magento\Data\FormFactory $formFactory
-     * @param \Magento\Core\Model\LocaleInterface $locale
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Data\FormFactory $formFactory
+     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\SalesRule\Model\CouponFactory $couponFactory
      * @param \Magento\SalesRule\Model\Coupon\CodegeneratorFactory $codegenFactory
      * @param \Magento\SalesRule\Model\Rule\Condition\CombineFactory $condCombineFactory
      * @param \Magento\SalesRule\Model\Rule\Condition\Product\CombineFactory $condProdCombineF
-     * @param \Magento\SalesRule\Model\Resource\Coupon\Collection $couponCollection
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Core\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\SalesRule\Model\ResourceModel\Coupon\Collection $couponCollection
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Core\Model\Context $context,
-        \Magento\Core\Model\Registry $registry,
-        \Magento\Data\FormFactory $formFactory,
-        \Magento\Core\Model\LocaleInterface $locale,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Data\FormFactory $formFactory,
+        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\SalesRule\Model\CouponFactory $couponFactory,
         \Magento\SalesRule\Model\Coupon\CodegeneratorFactory $codegenFactory,
         \Magento\SalesRule\Model\Rule\Condition\CombineFactory $condCombineFactory,
         \Magento\SalesRule\Model\Rule\Condition\Product\CombineFactory $condProdCombineF,
-        \Magento\SalesRule\Model\Resource\Coupon\Collection $couponCollection,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\Core\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\SalesRule\Model\ResourceModel\Coupon\Collection $couponCollection,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->_couponFactory = $couponFactory;
         $this->_codegenFactory = $codegenFactory;
@@ -243,56 +209,81 @@ class Rule extends \Magento\Rule\Model\AbstractModel
         $this->_condProdCombineF = $condProdCombineF;
         $this->_couponCollection = $couponCollection;
         $this->_storeManager = $storeManager;
-        parent::__construct($context, $registry, $formFactory, $locale, $resource, $resourceCollection, $data);
+        parent::__construct($context, $registry, $formFactory, $localeDate, $resource, $resourceCollection, $data);
     }
 
     /**
      * Set resource model and Id field name
+     *
+     * @return void
      */
     protected function _construct()
     {
         parent::_construct();
-        $this->_init('Magento\SalesRule\Model\Resource\Rule');
+        $this->_init('Magento\SalesRule\Model\ResourceModel\Rule');
         $this->setIdFieldName('rule_id');
     }
 
     /**
      * Set coupon code and uses per coupon
      *
-     * @return \Magento\SalesRule\Model\Rule
+     * @return $this
      */
     protected function _afterLoad()
     {
+        $this->loadRelations();
+        return parent::_afterLoad();
+    }
+
+    /**
+     * Load all relative data
+     *
+     * @return void
+     */
+    public function loadRelations()
+    {
+        $this->loadCouponCode();
+    }
+
+    /**
+     * Load coupon code
+     *
+     * @return void
+     */
+    public function loadCouponCode()
+    {
         $this->setCouponCode($this->getPrimaryCoupon()->getCode());
-        if ($this->getUsesPerCoupon() !== null && !$this->getUseAutoGeneration()) {
+        if ($this->getUsesPerCoupon() == null && !$this->getUseAutoGeneration()) {
             $this->setUsesPerCoupon($this->getPrimaryCoupon()->getUsageLimit());
         }
-        return parent::_afterLoad();
     }
 
     /**
      * Save/delete coupon
      *
-     * @return \Magento\SalesRule\Model\Rule
+     * @return $this
      */
-    protected function _afterSave()
+    public function afterSave()
     {
         $couponCode = trim($this->getCouponCode());
-        if (strlen($couponCode)
-            && $this->getCouponType() == self::COUPON_TYPE_SPECIFIC
-            && !$this->getUseAutoGeneration()
+        if (strlen(
+            $couponCode
+        ) && $this->getCouponType() == self::COUPON_TYPE_SPECIFIC && !$this->getUseAutoGeneration()
         ) {
-            $this->getPrimaryCoupon()
-                ->setCode($couponCode)
-                ->setUsageLimit($this->getUsesPerCoupon() ? $this->getUsesPerCoupon() : null)
-                ->setUsagePerCustomer($this->getUsesPerCustomer() ? $this->getUsesPerCustomer() : null)
-                ->setExpirationDate($this->getToDate())
-                ->save();
+            $this->getPrimaryCoupon()->setCode(
+                $couponCode
+            )->setUsageLimit(
+                $this->getUsesPerCoupon() ? $this->getUsesPerCoupon() : null
+            )->setUsagePerCustomer(
+                $this->getUsesPerCustomer() ? $this->getUsesPerCustomer() : null
+            )->setExpirationDate(
+                $this->getToDate()
+            )->save();
         } else {
             $this->getPrimaryCoupon()->delete();
         }
 
-        parent::_afterSave();
+        parent::afterSave();
         return $this;
     }
 
@@ -301,8 +292,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      * Set store labels if applicable.
      *
      * @param array $data
-     *
-     * @return \Magento\SalesRule\Model\Rule
+     * @return $this
      */
     public function loadPost(array $data)
     {
@@ -343,7 +333,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     public function getCouponCodeGenerator()
     {
         if (!$this->_couponCodeGenerator) {
-            return $this->_codegenFactory->create(array('data' => array('length' => 16)));
+            return $this->_codegenFactory->create(['data' => ['length' => 16]]);
         }
         return $this->_couponCodeGenerator;
     }
@@ -351,7 +341,8 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Set code generator instance for auto generated coupons
      *
-     * @param \Magento\SalesRule\Model\Coupon\CodegeneratorInterface
+     * @param \Magento\SalesRule\Model\Coupon\CodegeneratorInterface $codeGenerator
+     * @return void
      */
     public function setCouponCodeGenerator(\Magento\SalesRule\Model\Coupon\CodegeneratorInterface $codeGenerator)
     {
@@ -390,8 +381,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Get Rule label by specified store
      *
-     * @param \Magento\Core\Model\Store|int|bool|null $store
-     *
+     * @param \Magento\Store\Model\Store|int|bool|null $store
      * @return string|bool
      */
     public function getStoreLabel($store = null)
@@ -426,7 +416,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Retrieve subordinate coupons
      *
-     * @return array of \Magento\SalesRule\Model\Coupon
+     * @return \Magento\SalesRule\Model\Coupon[]
      */
     public function getCoupons()
     {
@@ -445,15 +435,14 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     public function getCouponTypes()
     {
         if ($this->_couponTypes === null) {
-            $this->_couponTypes = array(
+            $this->_couponTypes = [
                 \Magento\SalesRule\Model\Rule::COUPON_TYPE_NO_COUPON => __('No Coupon'),
-                \Magento\SalesRule\Model\Rule::COUPON_TYPE_SPECIFIC  => __('Specific Coupon'),
+                \Magento\SalesRule\Model\Rule::COUPON_TYPE_SPECIFIC => __('Specific Coupon'),
+            ];
+            $transport = new \Magento\Framework\DataObject(
+                ['coupon_types' => $this->_couponTypes, 'is_coupon_type_auto_visible' => false]
             );
-            $transport = new \Magento\Object(array(
-                'coupon_types'                => $this->_couponTypes,
-                'is_coupon_type_auto_visible' => false
-            ));
-            $this->_eventManager->dispatch('salesrule_rule_get_coupon_types', array('transport' => $transport));
+            $this->_eventManager->dispatch('salesrule_rule_get_coupon_types', ['transport' => $transport]);
             $this->_couponTypes = $transport->getCouponTypes();
             if ($transport->getIsCouponTypeAutoVisible()) {
                 $this->_couponTypes[\Magento\SalesRule\Model\Rule::COUPON_TYPE_AUTO] = __('Auto');
@@ -468,7 +457,9 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      * @param bool $saveNewlyCreated Whether or not to save newly created coupon
      * @param int $saveAttemptCount Number of attempts to save newly created coupon
      * @return \Magento\SalesRule\Model\Coupon|null
-     * @throws \Exception|\Magento\Core\Exception
+     * @throws \Exception|\Magento\Framework\Exception\LocalizedException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function acquireCoupon($saveNewlyCreated = true, $saveAttemptCount = 10)
     {
@@ -480,11 +471,17 @@ class Rule extends \Magento\Rule\Model\AbstractModel
         }
         /** @var \Magento\SalesRule\Model\Coupon $coupon */
         $coupon = $this->_couponFactory->create();
-        $coupon->setRule($this)
-            ->setIsPrimary(false)
-            ->setUsageLimit($this->getUsesPerCoupon() ? $this->getUsesPerCoupon() : null)
-            ->setUsagePerCustomer($this->getUsesPerCustomer() ? $this->getUsesPerCustomer() : null)
-            ->setExpirationDate($this->getToDate());
+        $coupon->setRule(
+            $this
+        )->setIsPrimary(
+            false
+        )->setUsageLimit(
+            $this->getUsesPerCoupon() ? $this->getUsesPerCoupon() : null
+        )->setUsagePerCustomer(
+            $this->getUsesPerCustomer() ? $this->getUsesPerCustomer() : null
+        )->setExpirationDate(
+            $this->getToDate()
+        );
 
         $couponCode = self::getCouponCodeGenerator()->generateCode();
         $coupon->setCode($couponCode);
@@ -492,27 +489,30 @@ class Rule extends \Magento\Rule\Model\AbstractModel
         $ok = false;
         if (!$saveNewlyCreated) {
             $ok = true;
-        } else if ($this->getId()) {
-            for ($attemptNum = 0; $attemptNum < $saveAttemptCount; $attemptNum++) {
-                try {
-                    $coupon->save();
-                } catch (\Exception $e) {
-                    if ($e instanceof \Magento\Core\Exception || $coupon->getId()) {
-                        throw $e;
+        } else {
+            if ($this->getId()) {
+                for ($attemptNum = 0; $attemptNum < $saveAttemptCount; $attemptNum++) {
+                    try {
+                        $coupon->save();
+                    } catch (\Exception $e) {
+                        if ($e instanceof \Magento\Framework\Exception\LocalizedException || $coupon->getId()) {
+                            throw $e;
+                        }
+                        $coupon->setCode(
+                            $couponCode . self::getCouponCodeGenerator()->getDelimiter() . sprintf(
+                                '%04u',
+                                rand(0, 9999)
+                            )
+                        );
+                        continue;
                     }
-                    $coupon->setCode(
-                        $couponCode .
-                        self::getCouponCodeGenerator()->getDelimiter() .
-                        sprintf('%04u', rand(0, 9999))
-                    );
-                    continue;
+                    $ok = true;
+                    break;
                 }
-                $ok = true;
-                break;
             }
         }
         if (!$ok) {
-            throw new \Magento\Core\Exception(__('Can\'t acquire coupon.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('Can\'t acquire coupon.'));
         }
 
         return $coupon;
@@ -521,8 +521,8 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Check cached validation result for specific address
      *
-     * @param   \Magento\Sales\Model\Quote\Address $address
-     * @return  bool
+     * @param Address $address
+     * @return bool
      */
     public function hasIsValidForAddress($address)
     {
@@ -533,9 +533,9 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Set validation result for specific address to results cache
      *
-     * @param   \Magento\Sales\Model\Quote\Address $address
-     * @param   bool $validationResult
-     * @return  \Magento\SalesRule\Model\Rule
+     * @param Address $address
+     * @param bool $validationResult
+     * @return $this
      */
     public function setIsValidForAddress($address, $validationResult)
     {
@@ -547,8 +547,9 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Get cached validation result for specific address
      *
-     * @param   \Magento\Sales\Model\Quote\Address $address
-     * @return  bool
+     * @param Address $address
+     * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getIsValidForAddress($address)
     {
@@ -559,64 +560,14 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     /**
      * Return id for address
      *
-     * @param   \Magento\Sales\Model\Quote\Address $address
-     * @return  string
+     * @param Address $address
+     * @return string
      */
-    private function _getAddressId($address) {
-        if($address instanceof \Magento\Sales\Model\Quote\Address) {
+    private function _getAddressId($address)
+    {
+        if ($address instanceof Address) {
             return $address->getId();
         }
         return $address;
-    }
-
-
-
-
-
-    /**
-     * Collect all product attributes used in serialized rule's action or condition
-     *
-     * @deprecated after 1.6.2.0 use \Magento\SalesRule\Model\Resource\Rule::getProductAttributes() instead
-     *
-     * @param string $serializedString
-     *
-     * @return array
-     */
-    protected function _getUsedAttributes($serializedString)
-    {
-        return $this->_getResource()->getProductAttributes($serializedString);
-    }
-
-    /**
-     * @deprecated after 1.6.2.0
-     *
-     * @param string $format
-     *
-     * @return string
-     */
-    public function toString($format='')
-    {
-        return '';
-    }
-
-    /**
-     * Returns rule as an array for admin interface
-     *
-     * @deprecated after 1.6.2.0
-     *
-     * @param array $arrAttributes
-     *
-     * Output example:
-     * array(
-     *   'name'=>'Example rule',
-     *   'conditions'=>{condition_combine::toArray}
-     *   'actions'=>{action_collection::toArray}
-     * )
-     *
-     * @return array
-     */
-    public function toArray(array $arrAttributes = array())
-    {
-        return parent::toArray($arrAttributes);
     }
 }

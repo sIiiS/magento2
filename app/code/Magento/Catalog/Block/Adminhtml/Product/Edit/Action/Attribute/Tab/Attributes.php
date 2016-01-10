@@ -1,42 +1,25 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
+// @codingStandardsIgnoreFile
 
 /**
  * Adminhtml catalog product edit action attributes update tab block
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Edit\Action\Attribute\Tab;
 
-class Attributes
-    extends \Magento\Catalog\Block\Adminhtml\Form
-    implements \Magento\Backend\Block\Widget\Tab\TabInterface
+use Magento\Framework\Data\Form\Element\AbstractElement;
+
+/**
+ * @SuppressWarnings(PHPMD.DepthOfInheritance)
+ */
+class Attributes extends \Magento\Catalog\Block\Adminhtml\Form implements
+    \Magento\Backend\Block\Widget\Tab\TabInterface
 {
     /**
      * @var \Magento\Catalog\Model\ProductFactory
@@ -44,50 +27,63 @@ class Attributes
     protected $_productFactory;
 
     /**
+     * @var \Magento\Catalog\Helper\Product\Edit\Action\Attribute
+     */
+    protected $_attributeAction;
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Model\Registry $registry
-     * @param \Magento\Data\FormFactory $formFactory
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Data\FormFactory $formFactory
      * @param \Magento\Catalog\Model\ProductFactory $productFactory
+     * @param \Magento\Catalog\Helper\Product\Edit\Action\Attribute $attributeAction
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Core\Model\Registry $registry,
-        \Magento\Data\FormFactory $formFactory,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Data\FormFactory $formFactory,
         \Magento\Catalog\Model\ProductFactory $productFactory,
-        array $data = array()
+        \Magento\Catalog\Helper\Product\Edit\Action\Attribute $attributeAction,
+        array $data = []
     ) {
+        $this->_attributeAction = $attributeAction;
         $this->_productFactory = $productFactory;
         parent::__construct($context, $registry, $formFactory, $data);
     }
 
+    /**
+     * @return void
+     */
     protected function _construct()
     {
         parent::_construct();
         $this->setShowGlobalIcon(true);
     }
 
+    /**
+     * @return void
+     */
     protected function _prepareForm()
     {
-        $this->setFormExcludedFieldList(array(
-            'category_ids',
-            'gallery',
-            'group_price',
-            'image',
-            'media_gallery',
-            'quantity_and_stock_status',
-            'recurring_profile',
-            'tier_price',
-        ));
-        $this->_eventManager->dispatch('adminhtml_catalog_product_form_prepare_excluded_field_list', array(
-            'object' => $this,
-        ));
+        $this->setFormExcludedFieldList(
+            [
+                'category_ids',
+                'gallery',
+                'image',
+                'media_gallery',
+                'quantity_and_stock_status',
+                'tier_price',
+            ]
+        );
+        $this->_eventManager->dispatch(
+            'adminhtml_catalog_product_form_prepare_excluded_field_list',
+            ['object' => $this]
+        );
 
-        /** @var \Magento\Data\Form $form */
+        /** @var \Magento\Framework\Data\Form $form */
         $form = $this->_formFactory->create();
-        $fieldset = $form->addFieldset('fields', array(
-            'legend' => __('Attributes'),
-        ));
+        $fieldset = $form->addFieldset('fields', ['legend' => __('Attributes')]);
         $attributes = $this->getAttributes();
         /**
          * Initialize product object as form property
@@ -102,12 +98,11 @@ class Attributes
     /**
      * Retrieve attributes for product mass update
      *
-     * @return array
+     * @return \Magento\Framework\DataObject[]
      */
     public function getAttributes()
     {
-        return $this->helper('Magento\Catalog\Helper\Product\Edit\Action\Attribute')
-            ->getAttributes()->getItems();
+        return $this->_attributeAction->getAttributes()->getItems();
     }
 
     /**
@@ -117,18 +112,18 @@ class Attributes
      */
     protected function _getAdditionalElementTypes()
     {
-        return array(
+        return [
             'price' => 'Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Price',
             'weight' => 'Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Weight',
             'image' => 'Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Image',
-            'boolean' => 'Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Boolean',
-        );
+            'boolean' => 'Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Boolean'
+        ];
     }
 
     /**
      * Custom additional element html
      *
-     * @param \Magento\Data\Form\Element\AbstractElement $element
+     * @param AbstractElement $element
      * @return string
      */
     protected function _getAdditionalElementHtml($element)
@@ -136,41 +131,54 @@ class Attributes
         // Add name attribute to checkboxes that correspond to multiselect elements
         $nameAttributeHtml = $element->getExtType() === 'multiple' ? 'name="' . $element->getId() . '_checkbox"' : '';
         $elementId = $element->getId();
+        $dataAttribute = "data-disable='{$elementId}'";
+        $dataCheckboxName = "toggle_" . "{$elementId}";
         $checkboxLabel = __('Change');
         $html = <<<HTML
 <span class="attribute-change-checkbox">
-    <label>
-        <input type="checkbox" $nameAttributeHtml onclick="toogleFieldEditMode(this, '{$elementId}')" />
+    <input type="checkbox" id="$dataCheckboxName" name="$dataCheckboxName" class="checkbox" $nameAttributeHtml onclick="toogleFieldEditMode(this, '{$elementId}')" $dataAttribute />
+    <label class="label" for="$dataCheckboxName">
         {$checkboxLabel}
     </label>
 </span>
-<script>initDisableFields("{$elementId}")</script>
 HTML;
         if ($elementId === 'weight') {
             $html .= <<<HTML
-<script>jQuery(function($) {
-    $('#weight_and_type_switcher, label[for=weight_and_type_switcher]').hide();
+<script>require(['Magento_Catalog/js/product/weight-handler'], function (weightHandle) {
+    weightHandle.hideWeightSwitcher();
 });</script>
 HTML;
         }
         return $html;
     }
 
+    /**
+     * @return \Magento\Framework\Phrase
+     */
     public function getTabLabel()
     {
         return __('Attributes');
     }
 
+    /**
+     * @return \Magento\Framework\Phrase
+     */
     public function getTabTitle()
     {
         return __('Attributes');
     }
 
+    /**
+     * @return bool
+     */
     public function canShowTab()
     {
         return true;
     }
 
+    /**
+     * @return bool
+     */
     public function isHidden()
     {
         return false;

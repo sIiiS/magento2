@@ -1,80 +1,103 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 -->
-<config>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\Cms\Api\Data\PageSearchResultsInterface"
+                type="Magento\Framework\Api\SearchResults" />
+    <preference for="Magento\Cms\Api\Data\BlockSearchResultsInterface"
+                type="Magento\Framework\Api\SearchResults" />
+    <preference for="Magento\Cms\Api\Data\PageInterface" type="Magento\Cms\Model\Page" />
+    <preference for="Magento\Cms\Api\Data\BlockInterface" type="Magento\Cms\Model\Block" />
+    <preference for="Magento\Cms\Api\BlockRepositoryInterface" type="Magento\Cms\Model\BlockRepository" />
+    <preference for="Magento\Cms\Api\PageRepositoryInterface" type="Magento\Cms\Model\PageRepository" />
     <type name="Magento\Cms\Model\Wysiwyg\Config">
-        <param name="windowSize">
-            <value>
-                <height type="int">600</height>
-                <width type="int">1000</width>
-            </value>
-        </param>
+        <arguments>
+            <argument name="windowSize" xsi:type="array">
+                <item name="height" xsi:type="number">600</item>
+                <item name="width" xsi:type="number">1000</item>
+            </argument>
+        </arguments>
     </type>
     <type name="Magento\Cms\Model\Wysiwyg\Images\Storage">
-        <param name="resizeParameters">
-            <value>
-                <height type="int">75</height>
-                <width type="int">100</width>
-            </value>
-        </param>
-        <param name="extensions">
-            <value>
-                <allowed>
-                    <jpg type="int">1</jpg>
-                    <jpeg type="int">1</jpeg>
-                    <png type="int">1</png>
-                    <gif type="int">1</gif>
-                </allowed>
-                <image_allowed>
-                    <jpg type="int">1</jpg>
-                    <jpeg type="int">1</jpeg>
-                    <png type="int">1</png>
-                    <gif type="int">1</gif>
-                </image_allowed>
-                <media_allowed>
-                    <flv type="int">1</flv>
-                    <swf type="int">1</swf>
-                    <avi type="int">1</avi>
-                    <mov type="int">1</mov>
-                    <rm type="int">1</rm>
-                    <wmv type="int">1</wmv>
-                </media_allowed>
-            </value>
-        </param>
-        <param name="dirs">
-            <value>
-                <exclude />
-                <include />
-            </value>
-        </param>
+        <arguments>
+            <argument name="resizeParameters" xsi:type="array">
+                <item name="height" xsi:type="number">75</item>
+                <item name="width" xsi:type="number">100</item>
+            </argument>
+            <argument name="extensions" xsi:type="array">
+                <item name="allowed" xsi:type="array">
+                    <item name="jpg" xsi:type="number">1</item>
+                    <item name="jpeg" xsi:type="number">1</item>
+                    <item name="png" xsi:type="number">1</item>
+                    <item name="gif" xsi:type="number">1</item>
+                </item>
+                <item name="image_allowed" xsi:type="array">
+                    <item name="jpg" xsi:type="number">1</item>
+                    <item name="jpeg" xsi:type="number">1</item>
+                    <item name="png" xsi:type="number">1</item>
+                    <item name="gif" xsi:type="number">1</item>
+                </item>
+                <item name="media_allowed" xsi:type="array">
+                    <item name="flv" xsi:type="number">1</item>
+                    <item name="swf" xsi:type="number">1</item>
+                    <item name="avi" xsi:type="number">1</item>
+                    <item name="mov" xsi:type="number">1</item>
+                    <item name="rm" xsi:type="number">1</item>
+                    <item name="wmv" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <argument name="dirs" xsi:type="array">
+                <item name="exclude" xsi:type="string"/>
+                <item name="include" xsi:type="string"/>
+            </argument>
+        </arguments>
     </type>
-    <type name="Magento\Module\Updater\SetupFactory">
-        <param name="resourceTypes">
-            <value>
-                <cms_setup>Magento\Cms\Model\Resource\Setup</cms_setup>
-            </value>
-        </param>
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="cms_page_listing_data_source" xsi:type="string">Magento\Cms\Model\ResourceModel\Page\Grid\Collection</item>
+                <item name="cms_block_listing_data_source" xsi:type="string">Magento\Cms\Model\ResourceModel\Block\Grid\Collection</item>
+            </argument>
+        </arguments>
     </type>
+    <type name="Magento\Cms\Model\ResourceModel\Page\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">cms_page</argument>
+            <argument name="eventPrefix" xsi:type="string">cms_page_grid_collection</argument>
+            <argument name="eventObject" xsi:type="string">page_grid_collection</argument>
+            <argument name="resourceModel" xsi:type="string">Magento\Cms\Model\ResourceModel\Page</argument>
+        </arguments>
+    </type>
+    <type name="Magento\Cms\Model\ResourceModel\Block\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">cms_block</argument>
+            <argument name="eventPrefix" xsi:type="string">cms_block_grid_collection</argument>
+            <argument name="eventObject" xsi:type="string">block_grid_collection</argument>
+            <argument name="resourceModel" xsi:type="string">Magento\Cms\Model\ResourceModel\Block</argument>
+        </arguments>
+    </type>
+    <virtualType name="CmsGirdFilterPool" type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
+        <arguments>
+            <argument name="appliers" xsi:type="array">
+                <item name="regular" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\RegularFilter</item>
+                <item name="fulltext" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\FulltextFilter</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="PageGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">Magento\Cms\Model\ResourceModel\Page\Collection</argument>
+            <argument name="filterPool" xsi:type="object" shared="false">CmsGirdFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="BlockGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">Magento\Cms\Model\ResourceModel\Block\Collection</argument>
+            <argument name="filterPool" xsi:type="object" shared="false">CmsGirdFilterPool</argument>
+        </arguments>
+    </virtualType>
 </config>

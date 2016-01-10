@@ -1,40 +1,21 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Eav
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
  * EAV attribute resource model (Using Forms)
  *
  * @method \Magento\Eav\Model\Attribute\Data\AbstractData|null getDataModel() Get data model linked to attribute or null.
- * @method string|null getFrontendInput() Get attribute type for user interface form or null
  *
- * @category   Magento
- * @package    Magento_Eav
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Eav\Model;
+
+use Magento\Store\Model\Website;
 
 abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
 {
@@ -54,15 +35,16 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
     /**
      * Active Website instance
      *
-     * @var \Magento\Core\Model\Website
+     * @var Website
      */
     protected $_website;
 
     /**
      * Set active website instance
      *
-     * @param \Magento\Core\Model\Website|int $website
-     * @return \Magento\Eav\Model\Attribute
+     * @param Website|int $website
+     * @return $this
+     * @codeCoverageIgnore
      */
     public function setWebsite($website)
     {
@@ -73,7 +55,7 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
     /**
      * Return active website instance
      *
-     * @return \Magento\Core\Model\Website
+     * @return Website
      */
     public function getWebsite()
     {
@@ -87,12 +69,12 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
     /**
      * Processing object after save data
      *
-     * @return \Magento\Eav\Model\Attribute
+     * @return $this
      */
-    protected function _afterSave()
+    public function afterSave()
     {
         $this->_eavConfig->clear();
-        return parent::_afterSave();
+        return parent::afterSave();
     }
 
     /**
@@ -120,23 +102,23 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
         $rules = $this->getData('validate_rules');
         if (is_array($rules)) {
             return $rules;
-        } else if (!empty($rules)) {
+        } elseif (!empty($rules)) {
             return unserialize($rules);
         }
-        return array();
+        return [];
     }
 
     /**
      * Set validate rules
      *
      * @param array|string $rules
-     * @return \Magento\Eav\Model\Attribute
+     * @return $this
      */
     public function setValidateRules($rules)
     {
         if (empty($rules)) {
             $rules = null;
-        } else if (is_array($rules)) {
+        } elseif (is_array($rules)) {
             $rules = serialize($rules);
         }
         $this->setData('validate_rules', $rules);
@@ -163,6 +145,7 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
      * Return is attribute value required
      *
      * @return mixed
+     * @codeCoverageIgnore
      */
     public function getIsRequired()
     {
@@ -173,6 +156,7 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
      * Return is visible attribute flag
      *
      * @return mixed
+     * @codeCoverageIgnore
      */
     public function getIsVisible()
     {
@@ -183,6 +167,7 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
      * Return default value for attribute
      *
      * @return mixed
+     * @codeCoverageIgnore
      */
     public function getDefaultValue()
     {
@@ -193,9 +178,19 @@ abstract class Attribute extends \Magento\Eav\Model\Entity\Attribute
      * Return count of lines for multiply line attribute
      *
      * @return mixed
+     * @codeCoverageIgnore
      */
     public function getMultilineCount()
     {
         return $this->_getScopeValue('multiline_count');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function afterDelete()
+    {
+        $this->_eavConfig->clear();
+        return parent::afterDelete();
     }
 }

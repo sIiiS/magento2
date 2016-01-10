@@ -1,77 +1,72 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Sales\Block\Adminhtml\Order\Create;
 
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
  * Adminhtml order create gift message block
  *
- * @category    Magento
- * @package     Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Sales\Block\Adminhtml\Order\Create;
-
 class Giftmessage extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
 {
     /**
+     * Gift message save
+     *
      * @var \Magento\GiftMessage\Model\Save
      */
     protected $_giftMessageSave;
 
     /**
+     * Message helper
+     *
+     * @var \Magento\GiftMessage\Helper\Message
+     */
+    protected $_messageHelper;
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Adminhtml\Model\Session\Quote $sessionQuote
+     * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
+     * @param PriceCurrencyInterface $priceCurrency
      * @param \Magento\GiftMessage\Model\Save $giftMessageSave
+     * @param \Magento\GiftMessage\Helper\Message $messageHelper
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Adminhtml\Model\Session\Quote $sessionQuote,
+        \Magento\Backend\Model\Session\Quote $sessionQuote,
         \Magento\Sales\Model\AdminOrder\Create $orderCreate,
+        PriceCurrencyInterface $priceCurrency,
         \Magento\GiftMessage\Model\Save $giftMessageSave,
-        array $data = array()
+        \Magento\GiftMessage\Helper\Message $messageHelper,
+        array $data = []
     ) {
+        $this->_messageHelper = $messageHelper;
         $this->_giftMessageSave = $giftMessageSave;
-        parent::__construct($context, $sessionQuote, $orderCreate, $data);
+        parent::__construct($context, $sessionQuote, $orderCreate, $priceCurrency, $data);
     }
 
     /**
      * Generate form for editing of gift message for entity
      *
-     * @param \Magento\Object $entity
-     * @param string        $entityType
+     * @param \Magento\Framework\DataObject $entity
+     * @param string $entityType
      * @return string
      */
-    public function getFormHtml(\Magento\Object $entity, $entityType='quote') {
-        return $this->getLayout()
-            ->createBlock('Magento\Sales\Block\Adminhtml\Order\Create\Giftmessage\Form')
-            ->setEntity($entity)
-            ->setEntityType($entityType)
-            ->toHtml();
+    public function getFormHtml(\Magento\Framework\DataObject $entity, $entityType = 'quote')
+    {
+        return $this->getLayout()->createBlock(
+            'Magento\Sales\Block\Adminhtml\Order\Create\Giftmessage\Form'
+        )->setEntity(
+            $entity
+        )->setEntityType(
+            $entityType
+        )->toHtml();
     }
 
     /**
@@ -79,23 +74,28 @@ class Giftmessage extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCr
      *
      * If no items available return false.
      *
-     * @return array|boolean
+     * @return array|false
      */
     public function getItems()
     {
-        $items = array();
+        $items = [];
         $allItems = $this->getQuote()->getAllItems();
 
         foreach ($allItems as $item) {
-            if($this->_getGiftmessageSaveModel()->getIsAllowedQuoteItem($item)
-               && $this->helper('Magento\GiftMessage\Helper\Message')->getIsMessagesAvailable('item',
-                        $item, $this->getStore())) {
+            if ($this->_getGiftmessageSaveModel()->getIsAllowedQuoteItem(
+                $item
+            ) && $this->_messageHelper->isMessagesAllowed(
+                'item',
+                $item,
+                $this->getStore()
+            )
+            ) {
                 // if item allowed
                 $items[] = $item;
             }
         }
 
-        if(sizeof($items)) {
+        if (sizeof($items)) {
             return $items;
         }
 
@@ -111,5 +111,4 @@ class Giftmessage extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCr
     {
         return $this->_giftMessageSave;
     }
-
 }

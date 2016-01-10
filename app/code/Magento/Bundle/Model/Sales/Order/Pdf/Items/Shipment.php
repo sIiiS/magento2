@@ -1,130 +1,113 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Bundle
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- */
-
-/**
- * Sales Order Shipment Pdf items renderer
- *
- * @category   Magento
- * @package    Magento_Bundle
- * @author     Magento Core Team <core@magentocommerce.com>
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Bundle\Model\Sales\Order\Pdf\Items;
 
-class Shipment extends \Magento\Bundle\Model\Sales\Order\Pdf\Items\AbstractItems
+/**
+ * Sales Order Shipment Pdf items renderer
+ */
+class Shipment extends AbstractItems
 {
     /**
-     * @var \Magento\Stdlib\String
+     * @var \Magento\Framework\Stdlib\StringUtils
      */
     protected $string;
 
     /**
-     * @param \Magento\Core\Model\Context $context
-     * @param \Magento\Core\Model\Registry $registry
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\App\Dir $coreDir
-     * @param \Magento\Stdlib\String $string
-     * @param \Magento\Core\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Filesystem $filesystem
+     * @param \Magento\Framework\Filter\FilterManager $filterManager
+     * @param \Magento\Framework\Stdlib\StringUtils $string
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Core\Model\Context $context,
-        \Magento\Core\Model\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Tax\Helper\Data $taxData,
-        \Magento\App\Dir $coreDir,
-        \Magento\Stdlib\String $string,
-        \Magento\Core\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Framework\Filesystem $filesystem,
+        \Magento\Framework\Filter\FilterManager $filterManager,
+        \Magento\Framework\Stdlib\StringUtils $string,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->string = $string;
-        parent::__construct($context, $registry, $taxData, $coreDir, $resource, $resourceCollection, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $taxData,
+            $filesystem,
+            $filterManager,
+            $resource,
+            $resourceCollection,
+            $data
+        );
     }
 
     /**
      * Draw item line
      *
+     * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function draw()
     {
-        $item   = $this->getItem();
-        $pdf    = $this->getPdf();
-        $page   = $this->getPage();
+        $item = $this->getItem();
+        $pdf = $this->getPdf();
+        $page = $this->getPage();
 
         $this->_setFontRegular();
 
-        $shipItems = $this->getChilds($item);
-        $items = array_merge(array($item->getOrderItem()), $item->getOrderItem()->getChildrenItems());
+        $shipItems = $this->getChildren($item);
+        $items = array_merge([$item->getOrderItem()], $item->getOrderItem()->getChildrenItems());
 
-        $_prevOptionId = '';
-        $drawItems = array();
+        $prevOptionId = '';
+        $drawItems = [];
 
-        foreach ($items as $_item) {
-            $line   = array();
+        foreach ($items as $childItem) {
+            $line = [];
 
-            $attributes = $this->getSelectionAttributes($_item);
+            $attributes = $this->getSelectionAttributes($childItem);
             if (is_array($attributes)) {
-                $optionId   = $attributes['option_id'];
-            }
-            else {
+                $optionId = $attributes['option_id'];
+            } else {
                 $optionId = 0;
             }
 
             if (!isset($drawItems[$optionId])) {
-                $drawItems[$optionId] = array(
-                    'lines'  => array(),
-                    'height' => 15
-                );
+                $drawItems[$optionId] = ['lines' => [], 'height' => 15];
             }
 
-            if ($_item->getParentItem()) {
-                if ($_prevOptionId != $attributes['option_id']) {
-                    $line[0] = array(
-                        'font'  => 'italic',
-                        'text'  => $this->string->split($attributes['option_label'], 60, true, true),
-                        'feed'  => 60
-                    );
+            if ($childItem->getParentItem()) {
+                if ($prevOptionId != $attributes['option_id']) {
+                    $line[0] = [
+                        'font' => 'italic',
+                        'text' => $this->string->split($attributes['option_label'], 60, true, true),
+                        'feed' => 60,
+                    ];
 
-                    $drawItems[$optionId] = array(
-                        'lines'  => array($line),
-                        'height' => 15
-                    );
+                    $drawItems[$optionId] = ['lines' => [$line], 'height' => 15];
 
-                    $line = array();
+                    $line = [];
 
-                    $_prevOptionId = $attributes['option_id'];
+                    $prevOptionId = $attributes['option_id'];
                 }
             }
 
-            if (($this->isShipmentSeparately() && $_item->getParentItem())
-                || (!$this->isShipmentSeparately() && !$_item->getParentItem())
+            if ($this->isShipmentSeparately() && $childItem->getParentItem() ||
+                !$this->isShipmentSeparately() && !$childItem->getParentItem()
             ) {
-                if (isset($shipItems[$_item->getId()])) {
-                    $qty = $shipItems[$_item->getId()]->getQty()*1;
-                } else if ($_item->getIsVirtual()) {
+                if (isset($shipItems[$childItem->getId()])) {
+                    $qty = $shipItems[$childItem->getId()]->getQty() * 1;
+                } elseif ($childItem->getIsVirtual()) {
                     $qty = __('N/A');
                 } else {
                     $qty = 0;
@@ -133,37 +116,28 @@ class Shipment extends \Magento\Bundle\Model\Sales\Order\Pdf\Items\AbstractItems
                 $qty = '';
             }
 
-            $line[] = array(
-                'text'  => $qty,
-                'feed'  => 35
-            );
+            $line[] = ['text' => $qty, 'feed' => 35];
 
             // draw Name
-            if ($_item->getParentItem()) {
+            if ($childItem->getParentItem()) {
                 $feed = 65;
-                $name = $this->getValueHtml($_item);
+                $name = $this->getValueHtml($childItem);
             } else {
                 $feed = 60;
-                $name = $_item->getName();
+                $name = $childItem->getName();
             }
-            $text = array();
+            $text = [];
             foreach ($this->string->split($name, 60, true, true) as $part) {
                 $text[] = $part;
             }
-            $line[] = array(
-                'text'  => $text,
-                'feed'  => $feed
-            );
+            $line[] = ['text' => $text, 'feed' => $feed];
 
             // draw SKUs
-            $text = array();
-            foreach ($this->string->split($_item->getSku(), 25) as $part) {
+            $text = [];
+            foreach ($this->string->split($childItem->getSku(), 25) as $part) {
                 $text[] = $part;
             }
-            $line[] = array(
-                'text'  => $text,
-                'feed'  => 440
-            );
+            $line[] = ['text' => $text, 'feed' => 440];
 
             $drawItems[$optionId]['lines'][] = $line;
         }
@@ -173,40 +147,41 @@ class Shipment extends \Magento\Bundle\Model\Sales\Order\Pdf\Items\AbstractItems
         if ($options) {
             if (isset($options['options'])) {
                 foreach ($options['options'] as $option) {
-                    $lines = array();
-                    $lines[][] = array(
-                        'text'  => $this->string->split(strip_tags($option['label']), 70, true, true),
-                        'font'  => 'italic',
-                        'feed'  => 60
-                    );
+                    $lines = [];
+                    $lines[][] = [
+                        'text' => $this->string->split(
+                            $this->filterManager->stripTags($option['label']),
+                            70,
+                            true,
+                            true
+                        ),
+                        'font' => 'italic',
+                        'feed' => 60,
+                    ];
 
                     if ($option['value']) {
-                        $text = array();
-                        $_printValue = isset($option['print_value'])
-                            ? $option['print_value']
-                            : strip_tags($option['value']);
-                        $values = explode(', ', $_printValue);
+                        $text = [];
+                        $printValue = isset(
+                            $option['print_value']
+                        ) ? $option['print_value'] : $this->filterManager->stripTags(
+                            $option['value']
+                        );
+                        $values = explode(', ', $printValue);
                         foreach ($values as $value) {
-                            foreach ($this->string->split($value, 50, true, true) as $_value) {
-                                $text[] = $_value;
+                            foreach ($this->string->split($value, 50, true, true) as $subValue) {
+                                $text[] = $subValue;
                             }
                         }
 
-                        $lines[][] = array(
-                            'text'  => $text,
-                            'feed'  => 65
-                        );
+                        $lines[][] = ['text' => $text, 'feed' => 65];
                     }
 
-                    $drawItems[] = array(
-                        'lines'  => $lines,
-                        'height' => 15
-                    );
+                    $drawItems[] = ['lines' => $lines, 'height' => 15];
                 }
             }
         }
 
-        $page = $pdf->drawLineBlocks($page, $drawItems, array('table_header' => true));
+        $page = $pdf->drawLineBlocks($page, $drawItems, ['table_header' => true]);
         $this->setPage($page);
     }
 }

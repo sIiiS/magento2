@@ -1,49 +1,30 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Widget\Controller\Adminhtml\Widget;
 
 /**
  * @magentoAppArea adminhtml
  */
-class InstanceTest extends \Magento\Backend\Utility\Controller
+class InstanceTest extends \Magento\TestFramework\TestCase\AbstractBackendController
 {
     protected function setUp()
     {
         parent::setUp();
 
-        $theme = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\View\DesignInterface')
-            ->setDefaultDesignTheme()
-            ->getDesignTheme();
+        \Magento\TestFramework\Helper\Bootstrap::getInstance()
+            ->loadArea(\Magento\Backend\App\Area\FrontNameResolver::AREA_CODE);
+
+        $theme = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Framework\View\DesignInterface'
+        )->setDefaultDesignTheme()->getDesignTheme();
         $type = 'Magento\Cms\Block\Widget\Page\Link';
         /** @var $model \Magento\Widget\Model\Widget\Instance */
-        $model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Widget\Model\Widget\Instance');
+        $model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\Widget\Model\Widget\Instance'
+        );
         $code = $model->setType($type)->getWidgetReference('type', $type, 'code');
         $this->getRequest()->setParam('code', $code);
         $this->getRequest()->setParam('theme_id', $theme->getId());
@@ -52,10 +33,7 @@ class InstanceTest extends \Magento\Backend\Utility\Controller
     public function testEditAction()
     {
         $this->dispatch('backend/admin/widget_instance/edit');
-        $this->assertContains(
-            '<option value="cms_page_link" selected="selected">',
-            $this->getResponse()->getBody()
-        );
+        $this->assertContains('<option value="cms_page_link" selected="selected">', $this->getResponse()->getBody());
     }
 
     public function testBlocksAction()

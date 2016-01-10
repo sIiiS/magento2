@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -42,18 +21,20 @@ class DataFixture
      *
      * @var array
      */
-    private $_appliedFixtures = array();
+    private $_appliedFixtures = [];
 
     /**
      * Constructor
      *
      * @param string $fixtureBaseDir
-     * @throws \Magento\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function __construct($fixtureBaseDir)
     {
         if (!is_dir($fixtureBaseDir)) {
-            throw new \Magento\Exception("Fixture base directory '$fixtureBaseDir' does not exist.");
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase("Fixture base directory '%1' does not exist.", [$fixtureBaseDir])
+            );
         }
         $this->_fixtureBaseDir = realpath($fixtureBaseDir);
     }
@@ -65,17 +46,16 @@ class DataFixture
      * @param \Magento\TestFramework\Event\Param\Transaction $param
      */
     public function startTestTransactionRequest(
-        \PHPUnit_Framework_TestCase $test, \Magento\TestFramework\Event\Param\Transaction $param
+        \PHPUnit_Framework_TestCase $test,
+        \Magento\TestFramework\Event\Param\Transaction $param
     ) {
         /* Start transaction before applying first fixture to be able to revert them all further */
-        if ($this->_getFixtures('method', $test)) {
-            /* Re-apply even the same fixtures to guarantee data consistency */
-            if ($this->_appliedFixtures) {
-                $param->requestTransactionRollback();
+        if ($this->_getFixtures($test)) {
+            if ($this->getDbIsolationState($test) !== ['disabled']) {
+                $param->requestTransactionStart();
+            } else {
+                $this->_applyFixtures($this->_getFixtures($test));
             }
-            $param->requestTransactionStart();
-        } else if (!$this->_appliedFixtures && $this->_getFixtures('class', $test)) {
-            $param->requestTransactionStart();
         }
     }
 
@@ -86,11 +66,16 @@ class DataFixture
      * @param \Magento\TestFramework\Event\Param\Transaction $param
      */
     public function endTestTransactionRequest(
-        \PHPUnit_Framework_TestCase $test, \Magento\TestFramework\Event\Param\Transaction $param
+        \PHPUnit_Framework_TestCase $test,
+        \Magento\TestFramework\Event\Param\Transaction $param
     ) {
         /* Isolate other tests from test-specific fixtures */
-        if ($this->_appliedFixtures && $this->_getFixtures('method', $test)) {
-            $param->requestTransactionRollback();
+        if ($this->_appliedFixtures && $this->_getFixtures($test)) {
+            if ($this->getDbIsolationState($test) !== ['disabled']) {
+                $param->requestTransactionRollback();
+            } else {
+                $this->_revertFixtures();
+            }
         }
     }
 
@@ -101,7 +86,7 @@ class DataFixture
      */
     public function startTransaction(\PHPUnit_Framework_TestCase $test)
     {
-        $this->_applyFixtures($this->_getFixtures('method', $test) ?: $this->_getFixtures('class', $test));
+        $this->_applyFixtures($this->_getFixtures($test));
     }
 
     /**
@@ -115,26 +100,32 @@ class DataFixture
     /**
      * Retrieve fixtures from annotation
      *
-     * @param string $scope 'class' or 'method'
      * @param \PHPUnit_Framework_TestCase $test
+     * @param string $scope
      * @return array
-     * @throws \Magento\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    protected function _getFixtures($scope, \PHPUnit_Framework_TestCase $test)
+    protected function _getFixtures(\PHPUnit_Framework_TestCase $test, $scope = null)
     {
-        $annotations = $test->getAnnotations();
-        $result = array();
-        if (!empty($annotations[$scope]['magentoDataFixture'])) {
-            foreach ($annotations[$scope]['magentoDataFixture'] as $fixture) {
+        if ($scope === null) {
+            $annotations = $this->getAnnotations($test);
+        } else {
+            $annotations = $test->getAnnotations()[$scope];
+        }
+        $result = [];
+        if (!empty($annotations['magentoDataFixture'])) {
+            foreach ($annotations['magentoDataFixture'] as $fixture) {
                 if (strpos($fixture, '\\') !== false) {
                     // usage of a single directory separator symbol streamlines search across the source code
-                    throw new \Magento\Exception('Directory separator "\\" is prohibited in fixture declaration.');
+                    throw new \Magento\Framework\Exception\LocalizedException(
+                        new \Magento\Framework\Phrase('Directory separator "\\" is prohibited in fixture declaration.')
+                    );
                 }
-                $fixtureMethod = array(get_class($test), $fixture);
+                $fixtureMethod = [get_class($test), $fixture];
                 if (is_callable($fixtureMethod)) {
                     $result[] = $fixtureMethod;
                 } else {
-                    $result[] = $this->_fixtureBaseDir . DIRECTORY_SEPARATOR . $fixture;
+                    $result[] = $this->_fixtureBaseDir . '/' . $fixture;
                 }
             }
         }
@@ -142,9 +133,34 @@ class DataFixture
     }
 
     /**
+     * @param \PHPUnit_Framework_TestCase $test
+     * @return array
+     */
+    private function getAnnotations(\PHPUnit_Framework_TestCase $test)
+    {
+        $annotations = $test->getAnnotations();
+        return array_replace($annotations['class'], $annotations['method']);
+    }
+
+    /**
+     * Return is explicit set isolation state
+     *
+     * @param \PHPUnit_Framework_TestCase $test
+     * @return bool|null
+     */
+    protected function getDbIsolationState(\PHPUnit_Framework_TestCase $test)
+    {
+        $annotations = $this->getAnnotations($test);
+        return isset($annotations[DbIsolation::MAGENTO_DB_ISOLATION])
+            ? $annotations[DbIsolation::MAGENTO_DB_ISOLATION]
+            : null;
+    }
+
+    /**
      * Execute single fixture script
      *
      * @param string|array $fixture
+     * @throws \Exception
      */
     protected function _applyOneFixture($fixture)
     {
@@ -152,11 +168,14 @@ class DataFixture
             if (is_callable($fixture)) {
                 call_user_func($fixture);
             } else {
-                require($fixture);
+                require $fixture;
             }
         } catch (\Exception $e) {
-            echo 'Error in fixture: ', json_encode($fixture), PHP_EOL, $e;
-            //throw $e;
+            throw new \Exception(
+                sprintf("Error in fixture: %s.\n %s", json_encode($fixture), $e->getMessage()),
+                500,
+                $e
+            );
         }
     }
 
@@ -164,22 +183,18 @@ class DataFixture
      * Execute fixture scripts if any
      *
      * @param array $fixtures
-     * @throws \Magento\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     protected function _applyFixtures(array $fixtures)
     {
-        try {
-            /* Execute fixture scripts */
-            foreach ($fixtures as $oneFixture) {
-                /* Skip already applied fixtures */
-                if (in_array($oneFixture, $this->_appliedFixtures, true)) {
-                    continue;
-                }
-                $this->_applyOneFixture($oneFixture);
-                $this->_appliedFixtures[] = $oneFixture;
+        /* Execute fixture scripts */
+        foreach ($fixtures as $oneFixture) {
+            /* Skip already applied fixtures */
+            if (in_array($oneFixture, $this->_appliedFixtures, true)) {
+                continue;
             }
-        } catch (\PDOException $e) {
-            echo $e;
+            $this->_applyOneFixture($oneFixture);
+            $this->_appliedFixtures[] = $oneFixture;
         }
     }
 
@@ -206,6 +221,6 @@ class DataFixture
                 }
             }
         }
-        $this->_appliedFixtures = array();
+        $this->_appliedFixtures = [];
     }
 }

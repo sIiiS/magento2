@@ -1,74 +1,63 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Sales\Block\Adminhtml\Order\Create\Sidebar;
+
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
  * Adminhtml sales order create sidebar recently compared block
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-
-namespace Magento\Sales\Block\Adminhtml\Order\Create\Sidebar;
-
 class Pcompared extends \Magento\Sales\Block\Adminhtml\Order\Create\Sidebar\AbstractSidebar
 {
     /**
+     * Product factory
+     *
      * @var \Magento\Catalog\Model\ProductFactory
      */
     protected $_productFactory;
 
     /**
-     * @var \Magento\Reports\Model\Resource\Event
+     * Event
+     *
+     * @var \Magento\Reports\Model\ResourceModel\Event
      */
     protected $_event;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Adminhtml\Model\Session\Quote $sessionQuote
+     * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
+     * @param PriceCurrencyInterface $priceCurrency
      * @param \Magento\Sales\Model\Config $salesConfig
-     * @param \Magento\Reports\Model\Resource\Event $event
+     * @param \Magento\Reports\Model\ResourceModel\Event $event
      * @param \Magento\Catalog\Model\ProductFactory $productFactory
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Adminhtml\Model\Session\Quote $sessionQuote,
+        \Magento\Backend\Model\Session\Quote $sessionQuote,
         \Magento\Sales\Model\AdminOrder\Create $orderCreate,
+        PriceCurrencyInterface $priceCurrency,
         \Magento\Sales\Model\Config $salesConfig,
-        \Magento\Reports\Model\Resource\Event $event,
+        \Magento\Reports\Model\ResourceModel\Event $event,
         \Magento\Catalog\Model\ProductFactory $productFactory,
-        array $data = array()
+        array $data = []
     ) {
         $this->_event = $event;
         $this->_productFactory = $productFactory;
-        parent::__construct($context, $sessionQuote, $orderCreate, $salesConfig, $data);
+        parent::__construct($context, $sessionQuote, $orderCreate, $priceCurrency, $salesConfig, $data);
     }
 
+    /**
+     * Constructor
+     *
+     * @return void
+     */
     protected function _construct()
     {
         parent::_construct();
@@ -76,6 +65,11 @@ class Pcompared extends \Magento\Sales\Block\Adminhtml\Order\Create\Sidebar\Abst
         $this->setDataId('pcompared');
     }
 
+    /**
+     * Get header text
+     *
+     * @return \Magento\Framework\Phrase
+     */
     public function getHeaderText()
     {
         return __('Recently Compared Products');
@@ -89,29 +83,40 @@ class Pcompared extends \Magento\Sales\Block\Adminhtml\Order\Create\Sidebar\Abst
     public function getItemCollection()
     {
         $productCollection = $this->getData('item_collection');
-        if (is_null($productCollection)) {
+        if ($productCollection === null) {
             // get products to skip
-            $skipProducts = array();
+            $skipProducts = [];
             if ($collection = $this->getCreateOrderModel()->getCustomerCompareList()) {
-                $collection = $collection->getItemCollection()
-                    ->useProductItem(true)
-                    ->setStoreId($this->getStoreId())
-                    ->setCustomerId($this->getCustomerId())
-                    ->load();
+                $collection = $collection->getItemCollection()->useProductItem(
+                    true
+                )->setStoreId(
+                    $this->getStoreId()
+                )->setCustomerId(
+                    $this->getCustomerId()
+                )->load();
                 foreach ($collection as $_item) {
                     $skipProducts[] = $_item->getProductId();
                 }
             }
 
             // prepare products collection and apply visitors log to it
-            $productCollection = $this->_productFactory->create()->getCollection()
-                ->setStoreId($this->getQuote()->getStoreId())
-                ->addStoreFilter($this->getQuote()->getStoreId())
-                ->addAttributeToSelect('name')
-                ->addAttributeToSelect('price')
-                ->addAttributeToSelect('small_image');
+            $productCollection = $this->_productFactory->create()->getCollection()->setStoreId(
+                $this->getQuote()->getStoreId()
+            )->addStoreFilter(
+                $this->getQuote()->getStoreId()
+            )->addAttributeToSelect(
+                'name'
+            )->addAttributeToSelect(
+                'price'
+            )->addAttributeToSelect(
+                'small_image'
+            );
             $this->_event->applyLogToCollection(
-                $productCollection, \Magento\Reports\Model\Event::EVENT_PRODUCT_COMPARE, $this->getCustomerId(), 0, $skipProducts
+                $productCollection,
+                \Magento\Reports\Model\Event::EVENT_PRODUCT_COMPARE,
+                $this->getCustomerId(),
+                0,
+                $skipProducts
             );
 
             $productCollection->load();
@@ -123,7 +128,7 @@ class Pcompared extends \Magento\Sales\Block\Adminhtml\Order\Create\Sidebar\Abst
     /**
      * Retrieve availability removing items in block
      *
-     * @return bool
+     * @return false
      */
     public function canRemoveItems()
     {
@@ -144,10 +149,11 @@ class Pcompared extends \Magento\Sales\Block\Adminhtml\Order\Create\Sidebar\Abst
     /**
      * Retrieve product identifier of block item
      *
-     * @param   mixed $item
-     * @return  int
+     * @param \Magento\Framework\DataObject $item
+     * @return int
      */
-    public function getProductId($item) {
+    public function getProductId($item)
+    {
         return $item->getId();
     }
 }

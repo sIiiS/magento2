@@ -1,31 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_ImportExport
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\ImportExport\Model;
+
+use Magento\ImportExport\Model\Import;
 
 /**
  * @magentoDataFixture Magento/ImportExport/_files/import_data.php
@@ -35,7 +15,7 @@ class ImportTest extends \PHPUnit_Framework_TestCase
     /**
      * Model object which is used for tests
      *
-     * @var \Magento\ImportExport\Model\Import
+     * @var Import
      */
     protected $_model;
 
@@ -49,44 +29,49 @@ class ImportTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected $_entityBehaviors = array(
-        'catalog_product' => array(
+    protected $_entityBehaviors = [
+        'catalog_product' => [
             'token' => 'Magento\ImportExport\Model\Source\Import\Behavior\Basic',
-            'code'  => 'basic_behavior',
-        ),
-        'customer_composite' => array(
+            'code' => 'basic_behavior',
+            'notes' => [
+                \Magento\ImportExport\Model\Import::BEHAVIOR_REPLACE => "Note: Product IDs will be regenerated."
+            ],
+        ],
+        'customer_composite' => [
             'token' => 'Magento\ImportExport\Model\Source\Import\Behavior\Basic',
-            'code'  => 'basic_behavior',
-        ),
-        'customer' => array(
+            'code' => 'basic_behavior',
+            'notes' => [],
+        ],
+        'customer' => [
             'token' => 'Magento\ImportExport\Model\Source\Import\Behavior\Custom',
-            'code'  => 'custom_behavior',
-        ),
-        'customer_address' => array(
+            'code' => 'custom_behavior',
+            'notes' => [],
+        ],
+        'customer_address' => [
             'token' => 'Magento\ImportExport\Model\Source\Import\Behavior\Custom',
-            'code'  => 'custom_behavior',
-        ),
-    );
+            'code' => 'custom_behavior',
+            'notes' => [],
+        ],
+    ];
 
     /**
      * Expected unique behaviors
      *
      * @var array
      */
-    protected $_uniqueBehaviors = array(
-        'basic_behavior'  => 'Magento\ImportExport\Model\Source\Import\Behavior\Basic',
+    protected $_uniqueBehaviors = [
+        'basic_behavior' => 'Magento\ImportExport\Model\Source\Import\Behavior\Basic',
         'custom_behavior' => 'Magento\ImportExport\Model\Source\Import\Behavior\Custom',
-    );
+    ];
 
     protected function setUp()
     {
-        $this->_importConfig = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\ImportExport\Model\Import\Config');
+        $this->_importConfig = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\ImportExport\Model\Import\Config'
+        );
         $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
             'Magento\ImportExport\Model\Import',
-            array(
-                'importConfig' => $this->_importConfig,
-            )
+            ['importConfig' => $this->_importConfig]
         );
     }
 
@@ -95,15 +80,20 @@ class ImportTest extends \PHPUnit_Framework_TestCase
      */
     public function testImportSource()
     {
-        /** @var $customersCollection \Magento\Customer\Model\Resource\Customer\Collection */
-        $customersCollection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Customer\Model\Resource\Customer\Collection');
+        /** @var $customersCollection \Magento\Customer\Model\ResourceModel\Customer\Collection */
+        $customersCollection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\Customer\Model\ResourceModel\Customer\Collection'
+        );
 
         $existCustomersCount = count($customersCollection->load());
 
         $customersCollection->resetData();
         $customersCollection->clear();
 
+        $this->_model->setData(
+            Import::FIELD_NAME_VALIDATION_STRATEGY,
+            Import\ErrorProcessing\ProcessingErrorAggregatorInterface::VALIDATION_STRATEGY_SKIP_ERRORS
+        );
         $this->_model->importSource();
 
         $customers = $customersCollection->getItems();
@@ -117,21 +107,26 @@ class ImportTest extends \PHPUnit_Framework_TestCase
     {
         $this->_model->setEntity('catalog_product');
         /** @var \Magento\ImportExport\Model\Import\AbstractSource|\PHPUnit_Framework_MockObject_MockObject $source */
-        $source = $this->getMockForAbstractClass('Magento\ImportExport\Model\Import\AbstractSource', array(
-            array('sku', 'name')
-        ));
+        $source = $this->getMockForAbstractClass(
+            'Magento\ImportExport\Model\Import\AbstractSource',
+            [['sku', 'name']]
+        );
         $source->expects($this->any())->method('_getNextRow')->will($this->returnValue(false));
         $this->assertTrue($this->_model->validateSource($source));
     }
 
     /**
-     * @expectedException \Magento\Core\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Entity is unknown
      */
     public function testValidateSourceException()
     {
-        $source = $this->getMockForAbstractClass('Magento\ImportExport\Model\Import\AbstractSource',
-            array(), '', false);
+        $source = $this->getMockForAbstractClass(
+            'Magento\ImportExport\Model\Import\AbstractSource',
+            [],
+            '',
+            false
+        );
         $this->_model->validateSource($source);
     }
 
@@ -143,7 +138,7 @@ class ImportTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Core\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Entity is unknown
      */
     public function testGetEntityEntityIsNotSet()
@@ -171,16 +166,14 @@ class ImportTest extends \PHPUnit_Framework_TestCase
     /**
      * Test getEntityBehaviors with not existing behavior class
      *
-     * @expectedException \Magento\Core\Exception
-     * @expectedExceptionMessage Invalid behavior token for customer
+     * @expectedException \Magento\Framework\Exception\LocalizedException
+     * @expectedExceptionMessage The behavior token for customer is invalid.
      */
     public function testGetEntityBehaviorsWithUnknownBehavior()
     {
-        $this->_importConfig->merge(array(
-            'entities' => array(
-                'customer' => array('behaviorModel' => 'Unknown_Behavior_Class'),
-            )
-        ));
+        $this->_importConfig->merge(
+            ['entities' => ['customer' => ['behaviorModel' => 'Unknown_Behavior_Class']]]
+        );
         $importModel = $this->_model;
         $actualBehaviors = $importModel->getEntityBehaviors();
         $this->assertArrayNotHasKey('customer', $actualBehaviors);

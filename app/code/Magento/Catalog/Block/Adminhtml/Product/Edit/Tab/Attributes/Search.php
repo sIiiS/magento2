@@ -1,34 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * New attribute panel on product edit page
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Attributes;
@@ -38,35 +16,35 @@ class Search extends \Magento\Backend\Block\Widget
     /**
      * Core registry
      *
-     * @var \Magento\Core\Model\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
-     * @var \Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory
+     * @var \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory
      */
     protected $_collectionFactory;
 
     /**
-     * @var \Magento\Core\Model\Resource\HelperPool
+     * @var \Magento\Framework\DB\Helper
      */
-    protected $_helperPool;
+    protected $_resourceHelper;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Model\Resource\HelperPool $helperPool
-     * @param \Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory $collectionFactory
-     * @param \Magento\Core\Model\Registry $registry
+     * @param \Magento\Framework\DB\Helper $resourceHelper
+     * @param \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $collectionFactory
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Core\Model\Resource\HelperPool $helperPool,
-        \Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory $collectionFactory,
-        \Magento\Core\Model\Registry $registry,
-        array $data = array()
+        \Magento\Framework\DB\Helper $resourceHelper,
+        \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $collectionFactory,
+        \Magento\Framework\Registry $registry,
+        array $data = []
     ) {
-        $this->_helperPool = $helperPool;
+        $this->_resourceHelper = $resourceHelper;
         $this->_collectionFactory = $collectionFactory;
         $this->_coreRegistry = $registry;
         parent::__construct($context, $data);
@@ -74,6 +52,8 @@ class Search extends \Magento\Backend\Block\Widget
 
     /**
      * Define block template
+     *
+     * @return void
      */
     protected function _construct()
     {
@@ -87,13 +67,13 @@ class Search extends \Magento\Backend\Block\Widget
     public function getSelectorOptions()
     {
         $templateId = $this->_coreRegistry->registry('product')->getAttributeSetId();
-        return array(
+        return [
             'source' => $this->getUrl('catalog/product/suggestAttributes'),
             'minLength' => 0,
-            'ajaxOptions' => array('data' => array('template_id' => $templateId)),
-            'template' => '[data-template-for="product-attribute-search"]',
-            'data' => $this->getSuggestedAttributes('', $templateId),
-        );
+            'ajaxOptions' => ['data' => ['template_id' => $templateId]],
+            'template' => '[data-template-for="product-attribute-search-' . $this->getGroupId() . '"]',
+            'data' => $this->getSuggestedAttributes('', $templateId)
+        ];
     }
 
     /**
@@ -101,26 +81,30 @@ class Search extends \Magento\Backend\Block\Widget
      *
      * @param string $labelPart
      * @param int $templateId
-     * @return \Magento\Catalog\Model\Resource\Product\Attribute\Collection
+     * @return \Magento\Catalog\Model\ResourceModel\Product\Attribute\Collection
      */
     public function getSuggestedAttributes($labelPart, $templateId = null)
     {
-        $escapedLabelPart = $this->_helperPool->get('Magento_Core')
-            ->addLikeEscape($labelPart, array('position' => 'any'));
-        /** @var $collection \Magento\Catalog\Model\Resource\Product\Attribute\Collection */
-        $collection = $this->_collectionFactory->create()
-            ->addFieldToFilter('frontend_label', array('like' => $escapedLabelPart));
+        $escapedLabelPart = $this->_resourceHelper->addLikeEscape(
+            $labelPart,
+            ['position' => 'any']
+        );
+        /** @var $collection \Magento\Catalog\Model\ResourceModel\Product\Attribute\Collection */
+        $collection = $this->_collectionFactory->create()->addFieldToFilter(
+            'frontend_label',
+            ['like' => $escapedLabelPart]
+        );
 
         $collection->setExcludeSetFilter($templateId ?: $this->getRequest()->getParam('template_id'))->setPageSize(20);
 
-        $result = array();
+        $result = [];
         foreach ($collection->getItems() as $attribute) {
-            /** @var $attribute \Magento\Catalog\Model\Resource\Eav\Attribute */
-            $result[] = array(
-                'id'      => $attribute->getId(),
-                'label'   => $attribute->getFrontendLabel(),
-                'code'    => $attribute->getAttributeCode(),
-            );
+            /** @var $attribute \Magento\Catalog\Model\ResourceModel\Eav\Attribute */
+            $result[] = [
+                'id' => $attribute->getId(),
+                'label' => $attribute->getFrontendLabel(),
+                'code' => $attribute->getAttributeCode(),
+            ];
         }
         return $result;
     }

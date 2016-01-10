@@ -1,217 +1,232 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
 namespace Magento\Sales\Helper;
+
+use Magento\Framework\App as App;
 
 /**
  * Sales module base helper
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Guest extends \Magento\Core\Helper\Data
+class Guest extends \Magento\Framework\App\Helper\AbstractHelper
 {
-    /**
-     * Cookie params
-     */
-    protected $_cookieName  = 'guest-view';
-
-    /**
-     * @var int
-     */
-    protected $_lifeTime    = 600;
-
     /**
      * Core registry
      *
-     * @var \Magento\Core\Model\Registry
+     * @var \Magento\Framework\Registry
      */
-    protected $_coreRegistry;
+    protected $coreRegistry;
 
     /**
      * @var \Magento\Customer\Model\Session
      */
-    protected $_customerSession;
+    protected $customerSession;
 
     /**
-     * @var \Magento\Stdlib\Cookie
+     * @var \Magento\Framework\Stdlib\CookieManagerInterface
      */
-    protected $_coreCookie;
+    protected $cookieManager;
 
     /**
-     * @var \Magento\Core\Model\Session
+     * @var \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory
      */
-    protected $_session;
+    protected $cookieMetadataFactory;
+
+    /**
+     * @var \Magento\Framework\Message\ManagerInterface
+     */
+    protected $messageManager;
 
     /**
      * @var \Magento\Sales\Model\OrderFactory
      */
-    protected $_orderFactory;
+    protected $orderFactory;
 
     /**
-     * @param \Magento\App\Helper\Context $context
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Core\Model\Locale $locale
-     * @param \Magento\App\State $appState
-     * @param \Magento\Core\Model\Registry $coreRegistry
+     * @var \Magento\Framework\Controller\Result\RedirectFactory
+     */
+    protected $resultRedirectFactory;
+
+    /**
+     * Cookie key for guest view
+     */
+    const COOKIE_NAME = 'guest-view';
+
+    /**
+     * Cookie path
+     */
+    const COOKIE_PATH = '/';
+
+    /**
+     * Cookie lifetime value
+     */
+    const COOKIE_LIFETIME = 600;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    private $_storeManager;
+
+    /**
+     * @param App\Helper\Context $context
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Registry $coreRegistry
      * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Stdlib\Cookie $coreCookie
-     * @param \Magento\Core\Model\Session $coreSession
+     * @param \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager
+     * @param \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory
+     * @param \Magento\Framework\Message\ManagerInterface $messageManager
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
-     * @param \Magento\App\ViewInterface $view
-     * @param bool $dbCompatibleMode
+     * @param \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\App\Helper\Context $context,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\Core\Model\Locale $locale,
-        \Magento\App\State $appState,
-        \Magento\Core\Model\Registry $coreRegistry,
+        App\Helper\Context $context,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Registry $coreRegistry,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Stdlib\Cookie $coreCookie,
-        \Magento\Core\Model\Session $coreSession,
+        \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager,
+        \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory,
+        \Magento\Framework\Message\ManagerInterface $messageManager,
         \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\App\ViewInterface $view,
-        $dbCompatibleMode = true
+        \Magento\Framework\Controller\Result\RedirectFactory $resultRedirectFactory
     ) {
-        $this->_coreRegistry = $coreRegistry;
-        $this->_customerSession = $customerSession;
-        $this->_coreCookie = $coreCookie;
-        $this->_session = $coreSession;
-        $this->_orderFactory = $orderFactory;
-        $this->_view = $view;
+        $this->coreRegistry = $coreRegistry;
+        $this->_storeManager = $storeManager;
+        $this->customerSession = $customerSession;
+        $this->cookieManager = $cookieManager;
+        $this->cookieMetadataFactory = $cookieMetadataFactory;
+        $this->messageManager = $messageManager;
+        $this->orderFactory = $orderFactory;
+        $this->resultRedirectFactory = $resultRedirectFactory;
+
         parent::__construct(
-            $context,
-            $coreStoreConfig,
-            $storeManager,
-            $locale,
-            $appState,
-            $dbCompatibleMode
+            $context
         );
     }
 
     /**
      * Try to load valid order by $_POST or $_COOKIE
      *
-     * @return bool|null
+     * @param App\RequestInterface $request
+     * @return \Magento\Framework\Controller\Result\Redirect|bool
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    public function loadValidOrder()
+    public function loadValidOrder(App\RequestInterface $request)
     {
-        if ($this->_customerSession->isLoggedIn()) {
-            $this->_app->getResponse()->setRedirect($this->_urlBuilder->getUrl('sales/order/history'));
-            return false;
+        if ($this->customerSession->isLoggedIn()) {
+            return $this->resultRedirectFactory->create()->setPath('sales/order/history');
         }
 
-        $post = $this->_app->getRequest()->getPost();
+        $post = $request->getPostValue();
         $errors = false;
 
         /** @var $order \Magento\Sales\Model\Order */
-        $order = $this->_orderFactory->create();
+        $order = $this->orderFactory->create();
 
-        if (empty($post) && !$this->_coreCookie->get($this->_cookieName)) {
-            $this->_app->getResponse()->setRedirect($this->_urlBuilder->getUrl('sales/guest/form'));
-            return false;
+        $fromCookie = $this->cookieManager->getCookie(self::COOKIE_NAME);
+        if (empty($post) && !$fromCookie) {
+            return $this->resultRedirectFactory->create()->setPath('sales/guest/form');
         } elseif (!empty($post) && isset($post['oar_order_id']) && isset($post['oar_type'])) {
-            $type           = $post['oar_type'];
-            $incrementId    = $post['oar_order_id'];
-            $lastName       = $post['oar_billing_lastname'];
-            $email          = $post['oar_email'];
-            $zip            = $post['oar_zip'];
+            $type = $post['oar_type'];
+            $incrementId = $post['oar_order_id'];
+            $lastName = $post['oar_billing_lastname'];
+            $email = $post['oar_email'];
+            $zip = $post['oar_zip'];
+            $storeId = $this->_storeManager->getStore()->getId();
 
-            if (empty($incrementId) || empty($lastName) || empty($type) || (!in_array($type, array('email', 'zip')))
-                || ($type == 'email' && empty($email)) || ($type == 'zip' && empty($zip))) {
+            if (empty($incrementId) || empty($lastName) || empty($type) || empty($storeId) || !in_array(
+                $type,
+                ['email', 'zip']
+            ) || $type == 'email' && empty($email) || $type == 'zip' && empty($zip)
+            ) {
                 $errors = true;
             }
 
             if (!$errors) {
-                $order->loadByIncrementId($incrementId);
+                $order = $order->loadByIncrementIdAndStoreId($incrementId, $storeId);
             }
 
+            $errors = true;
             if ($order->getId()) {
                 $billingAddress = $order->getBillingAddress();
-                if ((strtolower($lastName) != strtolower($billingAddress->getLastname()))
-                    || ($type == 'email'
-                        && strtolower($email) != strtolower($billingAddress->getEmail()))
-                    || ($type == 'zip'
-                        && (strtolower($zip) != strtolower($billingAddress->getPostcode())))
+                if (strtolower($lastName) == strtolower($billingAddress->getLastname()) &&
+                    ($type == 'email' && strtolower($email) == strtolower($billingAddress->getEmail()) ||
+                    $type == 'zip' && strtolower($zip) == strtolower($billingAddress->getPostcode()))
                 ) {
-                    $errors = true;
+                    $errors = false;
                 }
-            } else {
-                $errors = true;
             }
 
             if (!$errors) {
-                $toCookie = base64_encode($order->getProtectCode());
-                $this->_coreCookie->set($this->_cookieName, $toCookie, $this->_lifeTime, '/');
+                $toCookie = base64_encode($order->getProtectCode() . ':' . $incrementId);
+                $this->setGuestViewCookie($toCookie);
             }
-        } elseif ($this->_coreCookie->get($this->_cookieName)) {
-            $fromCookie     = $this->_coreCookie->get($this->_cookieName);
-            $protectCode    = base64_decode($fromCookie);
+        } elseif ($fromCookie) {
+            $cookieData = explode(':', base64_decode($fromCookie));
+            $protectCode = isset($cookieData[0]) ? $cookieData[0] : null;
+            $incrementId = isset($cookieData[1]) ? $cookieData[1] : null;
 
-            if (!empty($protectCode)) {
-                $order->loadByAttribute('protect_code', $protectCode);
-
-                $this->_coreCookie->renew($this->_cookieName, $this->_lifeTime, '/');
-            } else {
-                $errors = true;
+            $errors = true;
+            if (!empty($protectCode) && !empty($incrementId)) {
+                $order->loadByIncrementId($incrementId);
+                if ($order->getProtectCode() == $protectCode) {
+                    // renew cookie
+                    $this->setGuestViewCookie($fromCookie);
+                    $errors = false;
+                }
             }
         }
 
         if (!$errors && $order->getId()) {
-            $this->_coreRegistry->register('current_order', $order);
+            $this->coreRegistry->register('current_order', $order);
             return true;
         }
 
-        $this->_session->addError(
-            __('You entered incorrect data. Please try again.')
-        );
-        $this->_app->getResponse()->setRedirect($this->_urlBuilder->getUrl('sales/guest/form'));
-        return false;
+        $this->messageManager->addError(__('You entered incorrect data. Please try again.'));
+        return $this->resultRedirectFactory->create()->setPath('sales/guest/form');
     }
 
     /**
      * Get Breadcrumbs for current controller action
+     *
+     * @param \Magento\Framework\View\Result\Page $resultPage
+     * @return void
      */
-    public function getBreadcrumbs()
+    public function getBreadcrumbs(\Magento\Framework\View\Result\Page $resultPage)
     {
-        $breadcrumbs = $this->_view->getLayout()->getBlock('breadcrumbs');
+        $breadcrumbs = $resultPage->getLayout()->getBlock('breadcrumbs');
         $breadcrumbs->addCrumb(
             'home',
-            array(
+            [
                 'label' => __('Home'),
                 'title' => __('Go to Home Page'),
-                'link'  => $this->_storeManager->getStore()->getBaseUrl()
-            )
+                'link' => $this->_storeManager->getStore()->getBaseUrl()
+            ]
         );
         $breadcrumbs->addCrumb(
             'cms_page',
-            array(
-                'label' => __('Order Information'),
-                'title' => __('Order Information')
-            )
+            ['label' => __('Order Information'), 'title' => __('Order Information')]
         );
     }
 
+    /**
+     * Set guest-view cookie
+     *
+     * @param string $cookieValue
+     * @return void
+     */
+    private function setGuestViewCookie($cookieValue)
+    {
+        $metadata = $this->cookieMetadataFactory->createPublicCookieMetadata()
+            ->setPath(self::COOKIE_PATH)
+            ->setHttpOnly(true);
+        $this->cookieManager->setPublicCookie(self::COOKIE_NAME, $cookieValue, $metadata);
+    }
 }

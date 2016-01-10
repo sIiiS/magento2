@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Shipping
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Shipping\Helper;
 
 class DataTest extends \PHPUnit_Framework_TestCase
@@ -36,8 +14,9 @@ class DataTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\Shipping\Helper\Data');
+        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Shipping\Helper\Data'
+        );
     }
 
     /**
@@ -51,17 +30,17 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetTrackingPopupUrlBySalesModel($modelName, $getIdMethod, $entityId, $code, $expected)
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $constructArgs = array();
+        $constructArgs = [];
         if ('Magento\Sales\Model\Order\Shipment' == $modelName) {
-            $orderFactory = $this->_getMockOrderFactory($code);
-            $constructArgs['orderFactory'] = $orderFactory;
+            $orderRepository = $this->_getMockOrderRepository($code);
+            $constructArgs['orderRepository'] = $orderRepository;
         } elseif ('Magento\Sales\Model\Order\Shipment\Track' == $modelName) {
-            $shipmentFactory = $this->_getMockShipmentFactory($code);
-            $constructArgs['shipmentFactory'] = $shipmentFactory;
+            $shipmentRepository = $this->_getMockShipmentRepository($code);
+            $constructArgs['shipmentRepository'] = $shipmentRepository;
         }
 
         $model = $objectManager->create($modelName, $constructArgs);
-        $model->$getIdMethod($entityId);
+        $model->{$getIdMethod}($entityId);
 
         if ('Magento\Sales\Model\Order' == $modelName) {
             $model->setProtectCode($code);
@@ -73,34 +52,38 @@ class DataTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param $code
-     * @return \Magento\Sales\Model\OrderFactory
+     * @return \Magento\Sales\Api\OrderRepositoryInterface
      */
-    protected function _getMockOrderFactory($code)
+    protected function _getMockOrderRepository($code)
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
         $order = $objectManager->create('Magento\Sales\Model\Order');
         $order->setProtectCode($code);
-        $orderFactory = $this->getMock('Magento\Sales\Model\OrderFactory', array('create'), array(), '', false);
-        $orderFactory->expects($this->atLeastOnce())->method('create')->will($this->returnValue($order));
-        return $orderFactory;
+        $orderRepository = $this->getMock('Magento\Sales\Api\OrderRepositoryInterface', [], [], '', false);
+        $orderRepository->expects($this->atLeastOnce())->method('get')->will($this->returnValue($order));
+        return $orderRepository;
     }
 
     /**
      * @param $code
-     * @return \PHPUnit_Framework_MockObject_MockObject
+     * @return \Magento\Sales\Model\Order\ShipmentRepository|\PHPUnit_Framework_MockObject_MockObject
      */
-    protected function _getMockShipmentFactory($code)
+    protected function _getMockShipmentRepository($code)
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $orderFactory = $this->_getMockOrderFactory($code);
-        $shipmentArgs = array('orderFactory' => $orderFactory);
+        $orderRepository = $this->_getMockOrderRepository($code);
+        $shipmentArgs = ['orderRepository' => $orderRepository];
 
         $shipment = $objectManager->create('Magento\Sales\Model\Order\Shipment', $shipmentArgs);
-        $shipmentFactory = $this->getMock(
-            'Magento\Sales\Model\Order\ShipmentFactory', array('create'), array(), '', false
+        $shipmentRepository = $this->getMock(
+            'Magento\Sales\Model\Order\ShipmentRepository',
+            ['get'],
+            [],
+            '',
+            false
         );
-        $shipmentFactory->expects($this->atLeastOnce())->method('create')->will($this->returnValue($shipment));
-        return $shipmentFactory;
+        $shipmentRepository->expects($this->atLeastOnce())->method('get')->willReturn($shipment);
+        return $shipmentRepository;
     }
 
     /**
@@ -108,28 +91,28 @@ class DataTest extends \PHPUnit_Framework_TestCase
      */
     public function getTrackingPopupUrlBySalesModelDataProvider()
     {
-        return array(
-            array(
+        return [
+            [
                 'Magento\Sales\Model\Order',
                 'setId',
                 42,
                 'abc',
-                'http://localhost/index.php/shipping/tracking/popup/hash/b3JkZXJfaWQ6NDI6YWJj/'
-            ),
-            array(
+                'http://localhost/index.php/shipping/tracking/popup?hash=b3JkZXJfaWQ6NDI6YWJj',
+            ],
+            [
                 'Magento\Sales\Model\Order\Shipment',
                 'setId',
                 42,
                 'abc',
-                'http://localhost/index.php/shipping/tracking/popup/hash/c2hpcF9pZDo0MjphYmM,/'
-            ),
-            array(
+                'http://localhost/index.php/shipping/tracking/popup?hash=c2hpcF9pZDo0MjphYmM%2C'
+            ],
+            [
                 'Magento\Sales\Model\Order\Shipment\Track',
                 'setEntityId',
                 42,
                 'abc',
-                'http://localhost/index.php/shipping/tracking/popup/hash/dHJhY2tfaWQ6NDI6YWJj/'
-            )
-        );
+                'http://localhost/index.php/shipping/tracking/popup?hash=dHJhY2tfaWQ6NDI6YWJj'
+            ]
+        ];
     }
 }

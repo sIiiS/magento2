@@ -1,42 +1,28 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Backend
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 namespace Magento\Backend\Block;
 
 class Dashboard extends \Magento\Backend\Block\Template
 {
-    protected $_locale;
-
     /**
      * Location of the "Enable Chart" config param
      */
     const XML_PATH_ENABLE_CHARTS = 'admin/dashboard/enable_charts';
 
+    /**
+     * @var string
+     */
     protected $_template = 'dashboard/index.phtml';
 
+    /**
+     * @return void
+     */
     protected function _prepareLayout()
     {
         $this->addChild('lastOrders', 'Magento\Backend\Block\Dashboard\Orders\Grid');
@@ -45,16 +31,23 @@ class Dashboard extends \Magento\Backend\Block\Template
 
         $this->addChild('sales', 'Magento\Backend\Block\Dashboard\Sales');
 
-        $this->addChild('lastSearches', 'Magento\Backend\Block\Dashboard\Searches\Last');
-
-        $this->addChild('topSearches', 'Magento\Backend\Block\Dashboard\Searches\Top');
-
-        if ($this->_storeConfig->getConfig(self::XML_PATH_ENABLE_CHARTS)) {
+        $isChartEnabled = $this->_scopeConfig->getValue(
+            self::XML_PATH_ENABLE_CHARTS,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+        if ($isChartEnabled) {
             $block = $this->getLayout()->createBlock('Magento\Backend\Block\Dashboard\Diagrams');
         } else {
-            $block = $this->getLayout()->createBlock('Magento\Backend\Block\Template')
-                ->setTemplate('dashboard/graph/disabled.phtml')
-                ->setConfigUrl($this->getUrl('adminhtml/system_config/edit', array('section'=>'admin')));
+            $block = $this->getLayout()->createBlock(
+                'Magento\Backend\Block\Template'
+            )->setTemplate(
+                'dashboard/graph/disabled.phtml'
+            )->setConfigUrl(
+                $this->getUrl(
+                    'adminhtml/system_config/edit',
+                    ['section' => 'admin', '_fragment' => 'admin_dashboard-link']
+                )
+            );
         }
         $this->setChild('diagrams', $block);
 
@@ -63,11 +56,14 @@ class Dashboard extends \Magento\Backend\Block\Template
         parent::_prepareLayout();
     }
 
+    /**
+     * @return string
+     */
     public function getSwitchUrl()
     {
         if ($url = $this->getData('switch_url')) {
             return $url;
         }
-        return $this->getUrl('adminhtml/*/*', array('_current'=>true, 'period'=>null));
+        return $this->getUrl('adminhtml/*/*', ['_current' => true, 'period' => null]);
     }
 }

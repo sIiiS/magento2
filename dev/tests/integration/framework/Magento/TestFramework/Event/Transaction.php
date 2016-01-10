@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -94,7 +73,7 @@ class Transaction
     protected function _processTransactionRequests($eventName, \PHPUnit_Framework_TestCase $test)
     {
         $param = $this->_getEventParam();
-        $this->_eventManager->fireEvent($eventName . 'TransactionRequest', array($test, $param));
+        $this->_eventManager->fireEvent($eventName . 'TransactionRequest', [$test, $param]);
         if ($param->isTransactionRollbackRequested()) {
             $this->_rollbackTransaction();
         }
@@ -111,9 +90,17 @@ class Transaction
     protected function _startTransaction(\PHPUnit_Framework_TestCase $test)
     {
         if (!$this->_isTransactionActive) {
-            $this->_getAdapter()->beginTransparentTransaction();
+            $this->_getConnection()->beginTransparentTransaction();
             $this->_isTransactionActive = true;
-            $this->_eventManager->fireEvent('startTransaction', array($test));
+            try {
+                $this->_eventManager->fireEvent('startTransaction', [$test]);
+            } catch (\Exception $e) {
+                $test->getTestResultObject()->addFailure(
+                    $test,
+                    new \PHPUnit_Framework_AssertionFailedError((string)$e),
+                    0
+                );
+            }
         }
     }
 
@@ -123,7 +110,7 @@ class Transaction
     protected function _rollbackTransaction()
     {
         if ($this->_isTransactionActive) {
-            $this->_getAdapter()->rollbackTransparentTransaction();
+            $this->_getConnection()->rollbackTransparentTransaction();
             $this->_isTransactionActive = false;
             $this->_eventManager->fireEvent('rollbackTransaction');
         }
@@ -132,14 +119,15 @@ class Transaction
     /**
      * Retrieve database adapter instance
      *
-     * @param string $connectionName 'read' or 'write'
-     * @return \Magento\DB\Adapter\AdapterInterface|\Magento\TestFramework\Db\Adapter\TransactionInterface
-     * @throws \Magento\Exception
+     * @param string $connectionName
+     * @return \Magento\Framework\DB\Adapter\AdapterInterface|\Magento\TestFramework\Db\Adapter\TransactionInterface
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    protected function _getAdapter($connectionName = 'core_write')
+    protected function _getConnection($connectionName = \Magento\Framework\App\ResourceConnection::DEFAULT_CONNECTION)
     {
-        /** @var $resource \Magento\App\Resource */
-        $resource = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\App\Resource');
+        /** @var $resource \Magento\Framework\App\ResourceConnection */
+        $resource = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
+            ->get('Magento\Framework\App\ResourceConnection');
         return $resource->getConnection($connectionName);
     }
 

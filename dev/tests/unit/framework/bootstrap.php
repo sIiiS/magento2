@@ -1,61 +1,25 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-define('BP', realpath(__DIR__ . '/../../../../'));
-define('TESTS_TEMP_DIR', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'tmp');
-define('DS', DIRECTORY_SEPARATOR);
+require_once __DIR__ . '/../../../../app/autoload.php';
 
+$updateAppBootstrap = __DIR__ . '/../../../../update/app/bootstrap.php';
+if (file_exists($updateAppBootstrap)) {
+    require_once $updateAppBootstrap;
+}
+
+if (!defined('TESTS_TEMP_DIR')) {
+    define('TESTS_TEMP_DIR', dirname(__DIR__) . '/tmp');
+}
+
+require_once __DIR__ . '/autoload.php';
 require BP . '/app/functions.php';
-require BP . '/app/autoload.php';
-\Magento\Autoload\IncludePath::addIncludePath(array(
-    __DIR__,
-    realpath(__DIR__ . '/../testsuite'),
-    realpath(BP . '/app'),
-    realpath(BP . '/app/code'),
-    realpath(BP . '/lib'),
-));
-if (is_dir(TESTS_TEMP_DIR)) {
-    \Magento\Io\File::rmdirRecursive(TESTS_TEMP_DIR);
-}
-mkdir(TESTS_TEMP_DIR);
 
-\Magento\Phrase::setRenderer(new \Magento\Phrase\Renderer\Placeholder());
 
-function tool_autoloader($className)
-{
-    if (strpos($className, 'Magento\\Tools\\') === false) {
-        return false;
-    }
-    $filePath = str_replace('\\', DS, $className);
-    $filePath = BP . DS . 'dev' . DS . 'tools' . DS . $filePath . '.php';
+\Magento\Framework\Phrase::setRenderer(new \Magento\Framework\Phrase\Renderer\Placeholder());
 
-    if (file_exists($filePath)) {
-        include_once($filePath);
-    } else {
-        return false;
-    }
-}
-spl_autoload_register('tool_autoloader');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);

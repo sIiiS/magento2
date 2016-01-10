@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  static_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 /**
  * PHP JsHint shell command
@@ -31,11 +10,11 @@ namespace Magento\TestFramework\Inspection\JsHint;
 
 class Command extends \Magento\TestFramework\Inspection\AbstractCommand
 {
-
     /**
      * @var string
      */
     protected $_fileName;
+
     /**
      * @var string
      */
@@ -94,10 +73,17 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
      */
     protected function _buildShellCmd($whiteList, $blackList)
     {
-        return $this->_getHostScript(true) . ' '
-            . '"' . $this->_getJsHintPath() . '" '
-            . '"' . $this->getFileName() . '" '
-            . $this->_getJsHintOptions();
+        return $this->_getHostScript(
+            true
+        ) .
+            ' ' .
+            '"' .
+            $this->_getJsHintPath() .
+            '" ' .
+            '"' .
+            $this->getFileName() .
+            '" ' .
+            $this->_getJsHintOptions();
     }
 
     /**
@@ -107,7 +93,7 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
      * @param array $blackList Files/directories to be excluded from the inspection
      * @return bool
      */
-    public function run(array $whiteList, array $blackList = array())
+    public function run(array $whiteList, array $blackList = [])
     {
         $shellCmd = $this->_buildShellCmd($whiteList, $blackList);
         $result = $this->_execShellCmd($shellCmd);
@@ -130,15 +116,21 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
      */
     protected function _getJsHintOptions()
     {
-        $jsHintOptionsArray = array('eqnull' => 'true', 'browser' => 'true', 'jquery' => 'true');
+        $jsHintOptionsArray = [
+            'browser' => 'true',
+            'eqnull' => 'true',
+            'expr' => 'true',
+            'jquery' => 'true',
+            'supernew' => 'true',
+        ];
         $jsHintOptions = null;
         if ($this->_isOsWin()) {
             foreach ($jsHintOptionsArray as $key => $value) {
-                $jsHintOptions .= "/$key:$value ";
+                $jsHintOptions .= "/{$key}:{$value} ";
             }
         } else {
             foreach ($jsHintOptionsArray as $key => $value) {
-                $jsHintOptions .= "$key=$value,";
+                $jsHintOptions .= "{$key}={$value},";
             }
         }
         return trim(rtrim($jsHintOptions, ","));
@@ -161,10 +153,10 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
         if ($this->_isOsWin()) {
             $output = array_slice($retArray[0], 2);
         }
-        $output[] = ''; //empty line to separate each file output
+        $output[] = '';
+        //empty line to separate each file output
         file_put_contents($this->_reportFile, $this->_lastOutput, FILE_APPEND);
         return false;
-
     }
 
     /**
@@ -194,7 +186,7 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
     protected function _executeCommand($cmd)
     {
         exec(trim($cmd), $output, $retVal);
-        return array($output, $retVal);
+        return [$output, $retVal];
     }
 
     /**
@@ -216,5 +208,4 @@ class Command extends \Magento\TestFramework\Inspection\AbstractCommand
         }
         return true;
     }
-
 }

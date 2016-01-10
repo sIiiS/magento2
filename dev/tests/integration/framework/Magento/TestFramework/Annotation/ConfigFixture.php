@@ -1,34 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Implementation of the @magentoConfigFixture DocBlock annotation
  */
 namespace Magento\TestFramework\Annotation;
+
+use Magento\Framework\App\Config\ScopeConfigInterface;
 
 class ConfigFixture
 {
@@ -44,30 +25,34 @@ class ConfigFixture
      *
      * @var array
      */
-    private $_globalConfigValues = array();
+    private $_globalConfigValues = [];
 
     /**
      * Original values for store-scoped configuration options that need to be restored
      *
      * @var array
      */
-    private $_storeConfigValues = array();
+    private $_storeConfigValues = [];
 
     /**
      * Retrieve configuration node value
      *
      * @param string $configPath
-     * @param string|bool|null $storeCode
+     * @param string|bool|null $scopeCode
      * @return string
      */
-    protected function _getConfigValue($configPath, $storeCode = false)
+    protected function _getConfigValue($configPath, $scopeCode = null)
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
         $result = null;
-        if ($storeCode !== false) {
-            /** @var \Magento\Core\Model\Store\Config $storeConfig */
-            $storeConfig = $objectManager->get('Magento\Core\Model\Store\Config');
-            $result = $storeConfig->getConfig($configPath, $storeCode);
+        if ($scopeCode !== false) {
+            /** @var \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig */
+            $scopeConfig = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface');
+            $result = $scopeConfig->getValue(
+                $configPath,
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+                $scopeCode
+            );
         }
         return $result;
     }
@@ -81,15 +66,27 @@ class ConfigFixture
      */
     protected function _setConfigValue($configPath, $value, $storeCode = false)
     {
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
         if ($storeCode === false) {
-            $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
             if (strpos($configPath, 'default/') === 0) {
                 $configPath = substr($configPath, 8);
-                $objectManager->get('Magento\Core\Model\Config')->setValue($configPath, $value);
+                $objectManager->get(
+                    'Magento\Framework\App\Config\MutableScopeConfigInterface'
+                )->setValue(
+                    $configPath,
+                    $value,
+                    ScopeConfigInterface::SCOPE_TYPE_DEFAULT
+                );
             }
         } else {
-            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Core\Model\StoreManagerInterface')
-                ->getStore($storeCode)->setConfig($configPath, $value);
+            \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+                'Magento\Framework\App\Config\MutableScopeConfigInterface'
+            )->setValue(
+                $configPath,
+                $value,
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+                $storeCode
+            );
         }
     }
 
@@ -97,6 +94,7 @@ class ConfigFixture
      * Assign required config values and save original ones
      *
      * @param \PHPUnit_Framework_TestCase $test
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     protected function _assignConfigData(\PHPUnit_Framework_TestCase $test)
     {
@@ -107,12 +105,11 @@ class ConfigFixture
         foreach ($annotations['method']['magentoConfigFixture'] as $configPathAndValue) {
             if (preg_match('/^.+?(?=_store\s)/', $configPathAndValue, $matches)) {
                 /* Store-scoped config value */
-                $storeCode = ($matches[0] != 'current' ? $matches[0] : '');
-                list(, $configPath, $requiredValue) = preg_split('/\s+/', $configPathAndValue, 3);
-
+                $storeCode = $matches[0] != 'current' ? $matches[0] : null;
+                $parts = preg_split('/\s+/', $configPathAndValue, 3);
+                list($configScope, $configPath, $requiredValue) = $parts + ['', '', ''];
                 $originalValue = $this->_getConfigValue($configPath, $storeCode);
                 $this->_storeConfigValues[$storeCode][$configPath] = $originalValue;
-
                 $this->_setConfigValue($configPath, $requiredValue, $storeCode);
             } else {
                 /* Global config value */
@@ -123,7 +120,6 @@ class ConfigFixture
 
                 $this->_setConfigValue($configPath, $requiredValue);
             }
-
         }
     }
 
@@ -136,15 +132,18 @@ class ConfigFixture
         foreach ($this->_globalConfigValues as $configPath => $originalValue) {
             $this->_setConfigValue($configPath, $originalValue);
         }
-        $this->_globalConfigValues = array();
+        $this->_globalConfigValues = [];
 
         /* Restore store-scoped values */
         foreach ($this->_storeConfigValues as $storeCode => $originalData) {
             foreach ($originalData as $configPath => $originalValue) {
+                if (empty($storeCode)) {
+                    $storeCode = null;
+                }
                 $this->_setConfigValue($configPath, $originalValue, $storeCode);
             }
         }
-        $this->_storeConfigValues = array();
+        $this->_storeConfigValues = [];
     }
 
     /**

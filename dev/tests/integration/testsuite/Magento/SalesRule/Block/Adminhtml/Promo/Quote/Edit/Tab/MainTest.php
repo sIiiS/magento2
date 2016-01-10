@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\SalesRule\Block\Adminhtml\Promo\Quote\Edit\Tab;
 
 /**
@@ -40,25 +18,44 @@ class MainTest extends \PHPUnit_Framework_TestCase
     public function testPrepareForm()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $objectManager->get('Magento\View\DesignInterface')
-            ->setArea(\Magento\Backend\App\Area\FrontNameResolver::AREA_CODE)
-            ->setDefaultDesignTheme();
-        $objectManager->get('Magento\Core\Model\Registry')
-            ->register('current_promo_quote_rule', $objectManager->create('Magento\SalesRule\Model\Rule'));
+        $objectManager->get(
+            'Magento\Framework\View\DesignInterface'
+        )->setArea(
+            \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE
+        )->setDefaultDesignTheme();
+        $objectManager->get(
+            'Magento\Framework\Registry'
+        )->register(
+            'current_promo_quote_rule',
+            $objectManager->create('Magento\SalesRule\Model\Rule')
+        );
 
-        $layout = $objectManager->create('Magento\Core\Model\Layout');
-        $block = $layout->addBlock('Magento\SalesRule\Block\Adminhtml\Promo\Quote\Edit\Tab\Main');
+        $layout = $objectManager->create('Magento\Framework\View\Layout');
+        $block = $layout->createBlock('Magento\SalesRule\Block\Adminhtml\Promo\Quote\Edit\Tab\Main');
         $prepareFormMethod = new \ReflectionMethod(
-            'Magento\SalesRule\Block\Adminhtml\Promo\Quote\Edit\Tab\Main', '_prepareForm'
+            'Magento\SalesRule\Block\Adminhtml\Promo\Quote\Edit\Tab\Main',
+            '_prepareForm'
         );
         $prepareFormMethod->setAccessible(true);
         $prepareFormMethod->invoke($block);
 
         $form = $block->getForm();
-        foreach (array('from_date', 'to_date') as $id) {
+        foreach (['from_date', 'to_date'] as $id) {
             $element = $form->getElement($id);
             $this->assertNotNull($element);
             $this->assertNotEmpty($element->getDateFormat());
         }
+
+        // assert Customer Groups field
+        $customerGroupsField = $form->getElement('customer_group_ids');
+        /** @var \Magento\Customer\Api\GroupRepositoryInterface $groupRepository */
+        $groupRepository = $objectManager->create('Magento\Customer\Api\GroupRepositoryInterface');
+        /** @var \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteria */
+        $searchCriteria = $objectManager->create('Magento\Framework\Api\SearchCriteriaBuilder');
+        $objectConverter = $objectManager->get('Magento\Framework\Convert\DataObject');
+        $groups = $groups = $groupRepository->getList($searchCriteria->create())
+            ->getItems();
+        $expected = $objectConverter->toOptionArray($groups, 'id', 'code');
+        $this->assertEquals($expected, $customerGroupsField->getValues());
     }
 }

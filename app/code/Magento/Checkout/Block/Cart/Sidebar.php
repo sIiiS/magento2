@@ -1,294 +1,142 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Checkout
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- */
-
-
-/**
- * Wishlist sidebar block
- *
- * @category    Magento
- * @package     Magento_Checkout
- * @author      Magento Core Team <core@magentocommerce.com>
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Checkout\Block\Cart;
 
-class Sidebar extends \Magento\Checkout\Block\Cart\AbstractCart
+use Magento\Store\Model\ScopeInterface;
+
+/**
+ * Cart sidebar block
+ */
+class Sidebar extends AbstractCart
 {
-    const XML_PATH_CHECKOUT_SIDEBAR_COUNT   = 'checkout/sidebar/count';
-
     /**
-     * Tax data
-     *
-     * @var \Magento\Tax\Helper\Data
+     * Xml pah to checkout sidebar count value
      */
-    protected $_taxData;
+    const XML_PATH_CHECKOUT_SIDEBAR_DISPLAY = 'checkout/sidebar/display';
 
     /**
-     * @var \Magento\Catalog\Model\Resource\Url
+     * @var \Magento\Catalog\Helper\Image
      */
-    protected $_catalogUrl;
+    protected $imageHelper;
 
     /**
-     * @var \Magento\Tax\Model\Config
-     */
-    protected $_taxConfig;
-
-    /**
-     * @var \Magento\Checkout\Model\Cart
-     */
-    protected $_checkoutCart;
-
-    /**
-     * @param \Magento\View\Element\Template\Context $context
-     * @param \Magento\Catalog\Helper\Data $catalogData
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\Catalog\Model\Resource\Url $catalogUrl
-     * @param \Magento\Tax\Model\Config $taxConfig
-     * @param \Magento\Checkout\Model\Cart $checkoutCart
+     * @param \Magento\Catalog\Helper\Image $imageHelper
+     * @param \Magento\Customer\CustomerData\JsLayoutDataProviderPoolInterface $jsLayoutDataProvider
      * @param array $data
+     * @codeCoverageIgnore
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
-        \Magento\Catalog\Helper\Data $catalogData,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Tax\Helper\Data $taxData,
-        \Magento\Catalog\Model\Resource\Url $catalogUrl,
-        \Magento\Tax\Model\Config $taxConfig,
-        \Magento\Checkout\Model\Cart $checkoutCart,
-        array $data = array()
+        \Magento\Catalog\Helper\Image $imageHelper,
+        \Magento\Customer\CustomerData\JsLayoutDataProviderPoolInterface $jsLayoutDataProvider,
+        array $data = []
     ) {
-        $this->_taxData = $taxData;
-        $this->_catalogUrl = $catalogUrl;
-        $this->_taxConfig = $taxConfig;
-        $this->_checkoutCart = $checkoutCart;
-        parent::__construct($context, $catalogData, $customerSession, $checkoutSession, $data);
-    }
-
-    /**
-     * Retrieve count of display recently added items
-     *
-     * @return int
-     */
-    public function getItemCount()
-    {
-        $count = $this->getData('item_count');
-        if (is_null($count)) {
-            $count = $this->_storeConfig->getConfig(self::XML_PATH_CHECKOUT_SIDEBAR_COUNT);
-            $this->setData('item_count', $count);
+        if (isset($data['jsLayout'])) {
+            $this->jsLayout = array_merge_recursive($jsLayoutDataProvider->getData(), $data['jsLayout']);
+            unset($data['jsLayout']);
+        } else {
+            $this->jsLayout = $jsLayoutDataProvider->getData();
         }
-        return $count;
+        parent::__construct($context, $customerSession, $checkoutSession, $data);
+        $this->_isScopePrivate = false;
+        $this->imageHelper = $imageHelper;
     }
 
     /**
-     * Get array of last added items
+     * Returns minicart config
      *
      * @return array
      */
-    public function getRecentItems($count = null)
+    public function getConfig()
     {
-        if ($count === null) {
-            $count = $this->getItemCount();
-        }
-
-        $items = array();
-        if (!$this->getSummaryCount()) {
-            return $items;
-        }
-
-        $i = 0;
-        $allItems = array_reverse($this->getItems());
-        foreach ($allItems as $item) {
-            /* @var $item \Magento\Sales\Model\Quote\Item */
-            if (!$item->getProduct()->isVisibleInSiteVisibility()) {
-                $productId = $item->getProduct()->getId();
-                $products  = $this->_catalogUrl
-                    ->getRewriteByProductStore(array($productId => $item->getStoreId()));
-                if (!isset($products[$productId])) {
-                    continue;
-                }
-                $urlDataObject = new \Magento\Object($products[$productId]);
-                $item->getProduct()->setUrlDataObject($urlDataObject);
-            }
-
-            $items[] = $item;
-            if (++$i == $count) {
-                break;
-            }
-        }
-
-        return $items;
+        return [
+            'shoppingCartUrl' => $this->getShoppingCartUrl(),
+            'checkoutUrl' => $this->getCheckoutUrl(),
+            'updateItemQtyUrl' => $this->getUpdateItemQtyUrl(),
+            'removeItemUrl' => $this->getRemoveItemUrl(),
+            'imageTemplate' => $this->getImageHtmlTemplate(),
+            'baseUrl' => $this->getBaseUrl()
+        ];
     }
 
     /**
-     * Get shopping cart subtotal.
-     *
-     * It will include tax, if required by config settings.
-     *
-     * @param   bool $skipTax flag for getting price with tax or not. Ignored in case when we display just subtotal incl.tax
-     * @return  decimal
-     */
-    public function getSubtotal($skipTax = true)
-    {
-        $subtotal = 0;
-        $totals = $this->getTotals();
-        if (isset($totals['subtotal'])) {
-            if ($this->_taxConfig->displayCartSubtotalBoth()) {
-                if ($skipTax) {
-                    $subtotal = $totals['subtotal']->getValueExclTax();
-                } else {
-                    $subtotal = $totals['subtotal']->getValueInclTax();
-                }
-            } elseif($this->_taxConfig->displayCartSubtotalInclTax()) {
-                $subtotal = $totals['subtotal']->getValueInclTax();
-            } else {
-                $subtotal = $totals['subtotal']->getValue();
-                if (!$skipTax && isset($totals['tax'])) {
-                    $subtotal+= $totals['tax']->getValue();
-                }
-            }
-        }
-        return $subtotal;
-    }
-
-    /**
-     * Get subtotal, including tax.
-     * Will return > 0 only if appropriate config settings are enabled.
-     *
-     * @return decimal
-     */
-    public function getSubtotalInclTax()
-    {
-        if (!$this->_taxConfig->displayCartSubtotalBoth()) {
-            return 0;
-        }
-        return $this->getSubtotal(false);
-    }
-
-    /**
-     * Add tax to amount
-     *
-     * @param float $price
-     * @param bool $exclShippingTax
-     * @return float
-     */
-    private function _addTax($price, $exclShippingTax=true) {
-        $totals = $this->getTotals();
-        if (isset($totals['tax'])) {
-            if ($exclShippingTax) {
-                $price += $totals['tax']->getValue()-$this->_getShippingTaxAmount();
-            } else {
-                $price += $totals['tax']->getValue();
-            }
-        }
-        return $price;
-    }
-
-    /**
-     * Get shipping tax amount
-     *
-     * @return float
-     */
-    protected function _getShippingTaxAmount()
-    {
-        $quote = $this->getCustomQuote() ? $this->getCustomQuote() : $this->getQuote();
-        return $quote->getShippingAddress()->getShippingTaxAmount();
-    }
-
-    /**
-     * Get shopping cart items qty based on configuration (summary qty or items qty)
-     *
-     * @return int | float
-     */
-    public function getSummaryCount()
-    {
-        if ($this->getData('summary_qty')) {
-            return $this->getData('summary_qty');
-        }
-        return $this->_checkoutCart->getSummaryQty();
-    }
-
-    /**
-     * Get incl/excl tax label
-     *
-     * @param bool $flag
      * @return string
      */
-    public function getIncExcTax($flag)
+    public function getImageHtmlTemplate()
     {
-        $text = $this->_taxData->getIncExcText($flag);
-        return $text ? ' ('.$text.')' : '';
-    }
-
-    /**
-     * Check if one page checkout is available
-     *
-     * @return bool
-     */
-    public function isPossibleOnepageCheckout()
-    {
-        return $this->helper('Magento\Checkout\Helper\Data')->canOnepageCheckout() && !$this->getQuote()->getHasError();
+        return $this->imageHelper->getFrame()
+            ? 'Magento_Catalog/product/image'
+            : 'Magento_Catalog/product/image_with_borders';
     }
 
     /**
      * Get one page checkout page url
      *
-     * @return bool
+     * @codeCoverageIgnore
+     * @return string
      */
     public function getCheckoutUrl()
     {
-        return $this->helper('Magento\Checkout\Helper\Url')->getCheckoutUrl();
+        return $this->getUrl('checkout');
     }
 
     /**
-     * Define if Shopping Cart Sidebar enabled
+     * Get shopping cart page url
+     *
+     * @return string
+     * @codeCoverageIgnore
+     */
+    public function getShoppingCartUrl()
+    {
+        return $this->getUrl('checkout/cart');
+    }
+
+    /**
+     * Get update cart item url
+     *
+     * @return string
+     * @codeCoverageIgnore
+     */
+    public function getUpdateItemQtyUrl()
+    {
+        return $this->getUrl('checkout/sidebar/updateItemQty', ['_secure' => $this->getRequest()->isSecure()]);
+    }
+
+    /**
+     * Get remove cart item url
+     *
+     * @return string
+     * @codeCoverageIgnore
+     */
+    public function getRemoveItemUrl()
+    {
+        return $this->getUrl('checkout/sidebar/removeItem', ['_secure' => $this->getRequest()->isSecure()]);
+    }
+
+    /**
+     * Define if Mini Shopping Cart Pop-Up Menu enabled
      *
      * @return bool
+     * @codeCoverageIgnore
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getIsNeedToDisplaySideBar()
     {
-        return (bool) $this->_storeManager->getStore()->getConfig('checkout/sidebar/display');
+        return (bool)$this->_scopeConfig->getValue(
+            self::XML_PATH_CHECKOUT_SIDEBAR_DISPLAY,
+            ScopeInterface::SCOPE_STORE
+        );
     }
 
     /**
-     * Return customer quote items
-     *
-     * @return array
-     */
-    public function getItems()
-    {
-        if ($this->getCustomQuote()) {
-            return $this->getCustomQuote()->getAllVisibleItems();
-        }
-
-        return parent::getItems();
-    }
-
-    /*
      * Return totals from custom quote if needed
      *
      * @return array
@@ -303,63 +151,24 @@ class Sidebar extends \Magento\Checkout\Block\Cart\AbstractCart
     }
 
     /**
-     * Get cache key informative items
+     * Retrieve subtotal block html
      *
-     * @return array
-     */
-    public function getCacheKeyInfo()
-    {
-        $cacheKeyInfo = parent::getCacheKeyInfo();
-        $cacheKeyInfo['item_renders'] = $this->_serializeRenders();
-        return $cacheKeyInfo;
-    }
-
-    /**
-     * Serialize renders
-     *
+     * @codeCoverageIgnore
      * @return string
      */
-    protected function _serializeRenders()
+    public function getTotalsHtml()
     {
-        $result = array();
-        foreach ($this->getLayout()->getChildBlocks($this->getNameInLayout()) as $block) {
-            /** @var $block \Magento\View\Element\Template */
-            $result[] = implode('|', array(
-                // skip $this->getNameInLayout() and '.'
-                substr($block->getNameInLayout(), strlen($this->getNameInLayout()) + 1),
-                get_class($block),
-                $block->getTemplate()
-            ));
-        }
-        return implode('|', $result);
+        return $this->getLayout()->getBlock('checkout.cart.minicart.totals')->toHtml();
     }
 
     /**
-     * Deserialize renders from string
+     * Return base url.
      *
-     * @param string $renders
-     * @return $this
+     * @codeCoverageIgnore
+     * @return string
      */
-    public function deserializeRenders($renders)
+    public function getBaseUrl()
     {
-        if (!is_string($renders)) {
-            return $this;
-        }
-
-        $renders = explode('|', $renders);
-        while (!empty($renders)) {
-            $template = array_pop($renders);
-            $block = array_pop($renders);
-            $type = array_pop($renders);
-            if (!$template || !$block || !$type) {
-                continue;
-            }
-            if (!$this->getChildBlock($type)) {
-                $this->addChild($type, $block, array('template' => $template));
-            }
-
-        }
-
-        return $this;
+        return $this->_storeManager->getStore()->getBaseUrl();
     }
 }

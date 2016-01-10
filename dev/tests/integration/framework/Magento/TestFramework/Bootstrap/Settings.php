@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -44,7 +23,7 @@ class Settings
      *
      * @var array
      */
-    private $_settings = array();
+    private $_settings = [];
 
     /**
      * Constructor
@@ -56,7 +35,7 @@ class Settings
     public function __construct($baseDir, array $settings)
     {
         if (!is_dir($baseDir)) {
-            throw new \InvalidArgumentException("Base path '$baseDir' has to be an existing directory.");
+            throw new \InvalidArgumentException("Base path '{$baseDir}' has to be an existing directory.");
         }
         $this->_baseDir = realpath($baseDir);
         $this->_settings = $settings;
@@ -71,7 +50,7 @@ class Settings
      */
     public function get($settingName, $defaultValue = null)
     {
-        return (array_key_exists($settingName, $this->_settings) ? $this->_settings[$settingName] : $defaultValue);
+        return array_key_exists($settingName, $this->_settings) ? $this->_settings[$settingName] : $defaultValue;
     }
 
     /**
@@ -83,7 +62,7 @@ class Settings
      */
     public function getAsBoolean($settingName)
     {
-        return ($this->get($settingName) === 'enabled');
+        return $this->get($settingName) === 'enabled';
     }
 
     /**
@@ -107,7 +86,7 @@ class Settings
      *
      * @param string $settingName
      * @return string
-     * @throws \Magento\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function getAsConfigFile($settingName)
     {
@@ -120,7 +99,9 @@ class Settings
                 return $result;
             }
         }
-        throw new \Magento\Exception("Setting '$settingName' specifies the non-existing file '$result'.");
+        throw new \Magento\Framework\Exception\LocalizedException(
+            __("Setting '%1' specifies the non-existing file '%2'.", $settingName, $result)
+        );
     }
 
     /**
@@ -135,7 +116,7 @@ class Settings
         if ($settingValue !== '') {
             return $this->_resolvePathPattern($settingValue);
         }
-        return array();
+        return [];
     }
 
     /**
@@ -146,7 +127,7 @@ class Settings
      */
     protected function _resolvePath($relativePath)
     {
-        return $this->_baseDir . DIRECTORY_SEPARATOR . $relativePath;
+        return $this->_baseDir . '/' . $relativePath;
     }
 
     /**
@@ -157,7 +138,7 @@ class Settings
      */
     protected function _resolvePathPattern($pattern)
     {
-        $result = array();
+        $result = [];
         $allPatterns = preg_split('/\s*;\s*/', trim($pattern), -1, PREG_SPLIT_NO_EMPTY);
         foreach ($allPatterns as $onePattern) {
             $onePattern = $this->_resolvePath($onePattern);

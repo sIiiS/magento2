@@ -1,140 +1,170 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- */
-
-/**
- * Order create address form
- *
- * @category    Magento
- * @package     Magento_Sales
- * @author      Magento Core Team <core@magentocommerce.com>
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order\Create\Form;
 
-class Address
-    extends \Magento\Sales\Block\Adminhtml\Order\Create\Form\AbstractForm
+use Magento\Framework\Data\Form\Element\AbstractElement;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
+
+/**
+ * Order create address form
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+class Address extends \Magento\Sales\Block\Adminhtml\Order\Create\Form\AbstractForm
 {
     /**
-     * Customer Address Form instance
+     * Customer form factory
      *
-     * @var \Magento\Customer\Model\Form
-     */
-    protected $_addressForm;
-
-    /**
-     * Adminhtml addresses
-     *
-     * @var \Magento\Adminhtml\Helper\Addresses
-     */
-    protected $_adminhtmlAddresses = null;
-
-    /**
-     * @var \Magento\Customer\Model\AddressFactory
-     */
-    protected $_addressFactory;
-
-    /**
-     * @var \Magento\Customer\Model\FormFactory
+     * @var \Magento\Customer\Model\Metadata\FormFactory
      */
     protected $_customerFormFactory;
 
     /**
-     * @var \Magento\Json\EncoderInterface
+     * Json encoder
+     *
+     * @var \Magento\Framework\Json\EncoderInterface
      */
     protected $_jsonEncoder;
 
     /**
-     * @var \Magento\Core\Helper\Data
+     * Directory helper
+     *
+     * @var \Magento\Directory\Helper\Data
      */
-    protected $_coreData;
+    protected $directoryHelper;
 
     /**
+     * Customer options
+     *
+     * @var \Magento\Customer\Model\Options
+     */
+    protected $options;
+
+    /**
+     * Address service
+     *
+     * @var \Magento\Customer\Api\AddressRepositoryInterface
+     */
+    protected $addressService;
+
+    /**
+     * Address helper
+     *
+     * @var \Magento\Customer\Helper\Address
+     */
+    protected $_addressHelper;
+
+    /**
+     * Search criteria builder
+     *
+     * @var \Magento\Framework\Api\SearchCriteriaBuilder
+     */
+    protected $searchCriteriaBuilder;
+
+    /**
+     * Filter builder
+     *
+     * @var \Magento\Framework\Api\FilterBuilder
+     */
+    protected $filterBuilder;
+
+    /**
+     * @var \Magento\Customer\Model\Address\Mapper
+     */
+    protected $addressMapper;
+
+    /**
+     * Constructor
+     *
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Helper\Data $coreData
-     * @param \Magento\Json\EncoderInterface $jsonEncoder
-     * @param \Magento\Adminhtml\Model\Session\Quote $sessionQuote
+     * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
-     * @param \Magento\Data\FormFactory $formFactory
-     * @param \Magento\Customer\Model\AddressFactory $addressFactory
-     * @param \Magento\Customer\Model\FormFactory $customerFormFactory
-     * @param \Magento\Adminhtml\Helper\Addresses $adminhtmlAddresses
+     * @param PriceCurrencyInterface $priceCurrency
+     * @param \Magento\Framework\Data\FormFactory $formFactory
+     * @param \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor
+     * @param \Magento\Directory\Helper\Data $directoryHelper
+     * @param \Magento\Framework\Json\EncoderInterface $jsonEncoder
+     * @param \Magento\Customer\Model\Metadata\FormFactory $customerFormFactory
+     * @param \Magento\Customer\Model\Options $options
+     * @param \Magento\Customer\Helper\Address $addressHelper
+     * @param \Magento\Customer\Api\AddressRepositoryInterface $addressService
+     * @param \Magento\Framework\Api\SearchCriteriaBuilder $criteriaBuilder
+     * @param \Magento\Framework\Api\FilterBuilder $filterBuilder
+     * @param \Magento\Customer\Model\Address\Mapper $addressMapper
      * @param array $data
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Adminhtml\Model\Session\Quote $sessionQuote,
+        \Magento\Backend\Model\Session\Quote $sessionQuote,
         \Magento\Sales\Model\AdminOrder\Create $orderCreate,
-        \Magento\Data\FormFactory $formFactory,
-        \Magento\Core\Helper\Data $coreData,
-        \Magento\Json\EncoderInterface $jsonEncoder,
-        \Magento\Customer\Model\AddressFactory $addressFactory,
-        \Magento\Customer\Model\FormFactory $customerFormFactory,
-        \Magento\Adminhtml\Helper\Addresses $adminhtmlAddresses,
-        array $data = array()
+        PriceCurrencyInterface $priceCurrency,
+        \Magento\Framework\Data\FormFactory $formFactory,
+        \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor,
+        \Magento\Directory\Helper\Data $directoryHelper,
+        \Magento\Framework\Json\EncoderInterface $jsonEncoder,
+        \Magento\Customer\Model\Metadata\FormFactory $customerFormFactory,
+        \Magento\Customer\Model\Options $options,
+        \Magento\Customer\Helper\Address $addressHelper,
+        \Magento\Customer\Api\AddressRepositoryInterface $addressService,
+        \Magento\Framework\Api\SearchCriteriaBuilder $criteriaBuilder,
+        \Magento\Framework\Api\FilterBuilder $filterBuilder,
+        \Magento\Customer\Model\Address\Mapper $addressMapper,
+        array $data = []
     ) {
-        $this->_coreData = $coreData;
+        $this->options = $options;
+        $this->directoryHelper = $directoryHelper;
         $this->_jsonEncoder = $jsonEncoder;
-        $this->_addressFactory = $addressFactory;
         $this->_customerFormFactory = $customerFormFactory;
-        $this->_adminhtmlAddresses = $adminhtmlAddresses;
-        parent::__construct($context, $sessionQuote, $orderCreate, $formFactory, $data);
+        $this->_addressHelper = $addressHelper;
+        $this->addressService = $addressService;
+        $this->searchCriteriaBuilder = $criteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->addressMapper = $addressMapper;
+        parent::__construct(
+            $context,
+            $sessionQuote,
+            $orderCreate,
+            $priceCurrency,
+            $formFactory,
+            $dataObjectProcessor,
+            $data
+        );
     }
 
     /**
      * Get config
      *
      * @param string $path
-     * @return mixed
+     * @return string|null
      */
     public function getConfig($path)
     {
-        return $this->_storeConfig->getConfig($path);
-    }
-    /**
-     * Return Customer Address Collection as array
-     *
-     * @return array
-     */
-    public function getAddressCollection()
-    {
-        return $this->getCustomer()->getAddresses();
+        return $this->_scopeConfig->getValue($path, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
     }
 
     /**
-     * Return customer address form instance
+     * Retrieve current customer address DATA collection.
      *
-     * @return \Magento\Customer\Model\Form
+     * @return \Magento\Customer\Api\Data\AddressInterface[]
      */
-    protected function _getAddressForm()
+    public function getAddressCollection()
     {
-        if (is_null($this->_addressForm)) {
-            $this->_addressForm = $this->_customerFormFactory->create()
-                ->setFormCode('adminhtml_customer_address')
-                ->setStore($this->getStore());
+        if ($this->getCustomerId()) {
+            $filter = $this->filterBuilder
+                ->setField('parent_id')
+                ->setValue($this->getCustomerId())
+                ->setConditionType('eq')
+                ->create();
+            $this->searchCriteriaBuilder->addFilters([$filter]);
+            $searchCriteria = $this->searchCriteriaBuilder->create();
+            $result = $this->addressService->getList($searchCriteria);
+            return $result->getItems();
         }
-        return $this->_addressForm;
+        return [];
     }
 
     /**
@@ -144,58 +174,49 @@ class Address
      */
     public function getAddressCollectionJson()
     {
-        $addressForm = $this->_getAddressForm();
-        $data = array();
-
-        $emptyAddress = $this->getCustomer()
-            ->getAddressById(null)
-            ->setCountryId($this->_coreData->getDefaultCountry($this->getStore()));
-        $data[0] = $addressForm->setEntity($emptyAddress)
-            ->outputData(\Magento\Eav\Model\AttributeDataFactory::OUTPUT_FORMAT_JSON);
-
+        $defaultCountryId = $this->directoryHelper->getDefaultCountry($this->getStore());
+        $emptyAddressForm = $this->_customerFormFactory->create(
+            'customer_address',
+            'adminhtml_customer_address',
+            [\Magento\Customer\Api\Data\AddressInterface::COUNTRY_ID => $defaultCountryId]
+        );
+        $data = [0 => $emptyAddressForm->outputData(\Magento\Eav\Model\AttributeDataFactory::OUTPUT_FORMAT_JSON)];
         foreach ($this->getAddressCollection() as $address) {
-            $addressForm->setEntity($address);
+            $addressForm = $this->_customerFormFactory->create(
+                'customer_address',
+                'adminhtml_customer_address',
+                $this->addressMapper->toFlatArray($address)
+            );
             $data[$address->getId()] = $addressForm->outputData(
                 \Magento\Eav\Model\AttributeDataFactory::OUTPUT_FORMAT_JSON
             );
         }
+
         return $this->_jsonEncoder->encode($data);
     }
 
     /**
      * Prepare Form and add elements to form
      *
-     * @return \Magento\Sales\Block\Adminhtml\Order\Create\Form\Address
+     * @return $this
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function _prepareForm()
     {
-        $fieldset = $this->_form->addFieldset('main', array(
-            'no_container' => true
-        ));
+        $fieldset = $this->_form->addFieldset('main', ['no_container' => true]);
 
-        /* @var $addressModel \Magento\Customer\Model\Address */
-        $addressModel = $this->_addressFactory->create();
-
-        $addressForm = $this->_getAddressForm()
-            ->setEntity($addressModel);
-
+        $addressForm = $this->_customerFormFactory->create('customer_address', 'adminhtml_customer_address');
         $attributes = $addressForm->getAttributes();
-        if (isset($attributes['street'])) {
-            $this->_adminhtmlAddresses
-                ->processStreetAttribute($attributes['street']);
-        }
         $this->_addAttributesToForm($attributes, $fieldset);
 
         $prefixElement = $this->_form->getElement('prefix');
         if ($prefixElement) {
-            $prefixOptions = $this->helper('Magento\Customer\Helper\Data')->getNamePrefixOptions($this->getStore());
+            $prefixOptions = $this->options->getNamePrefixOptions($this->getStore());
             if (!empty($prefixOptions)) {
                 $fieldset->removeField($prefixElement->getId());
-                $prefixField = $fieldset->addField($prefixElement->getId(),
-                    'select',
-                    $prefixElement->getData(),
-                    '^'
-                );
+                $prefixField = $fieldset->addField($prefixElement->getId(), 'select', $prefixElement->getData(), '^');
                 $prefixField->setValues($prefixOptions);
                 if ($this->getAddressId()) {
                     $prefixField->addElementValues($this->getAddress()->getPrefix());
@@ -205,10 +226,11 @@ class Address
 
         $suffixElement = $this->_form->getElement('suffix');
         if ($suffixElement) {
-            $suffixOptions = $this->helper('Magento\Customer\Helper\Data')->getNameSuffixOptions($this->getStore());
+            $suffixOptions = $this->options->getNameSuffixOptions($this->getStore());
             if (!empty($suffixOptions)) {
                 $fieldset->removeField($suffixElement->getId());
-                $suffixField = $fieldset->addField($suffixElement->getId(),
+                $suffixField = $fieldset->addField(
+                    $suffixElement->getId(),
                     'select',
                     $suffixElement->getData(),
                     $this->_form->getElement('lastname')->getId()
@@ -219,7 +241,6 @@ class Address
                 }
             }
         }
-
 
         $regionElement = $this->_form->getElement('region_id');
         if ($regionElement) {
@@ -237,9 +258,9 @@ class Address
                 }
             }
         }
-        if (is_null($this->_form->getElement('country_id')->getValue())) {
+        if ($this->_form->getElement('country_id')->getValue() === null) {
             $this->_form->getElement('country_id')->setValue(
-                $this->_coreData->getDefaultCountry($this->getStore())
+                $this->directoryHelper->getDefaultCountry($this->getStore())
             );
         }
 
@@ -247,9 +268,11 @@ class Address
         $vatIdElement = $this->_form->getElement('vat_id');
         if ($vatIdElement && $this->getDisplayVatValidationButton() !== false) {
             $vatIdElement->setRenderer(
-                $this->getLayout()
-                    ->createBlock('Magento\Customer\Block\Adminhtml\Sales\Order\Address\Form\Renderer\Vat')
-                    ->setJsVariablePrefix($this->getJsVariablePrefix())
+                $this->getLayout()->createBlock(
+                    'Magento\Customer\Block\Adminhtml\Sales\Order\Address\Form\Renderer\Vat'
+                )->setJsVariablePrefix(
+                    $this->getJsVariablePrefix()
+                )
             );
         }
 
@@ -259,10 +282,10 @@ class Address
     /**
      * Add additional data to form element
      *
-     * @param \Magento\Data\Form\Element\AbstractElement $element
-     * @return \Magento\Sales\Block\Adminhtml\Order\Create\Form\AbstractForm
+     * @param AbstractElement $element
+     * @return $this
      */
-    protected function _addAdditionalFormElementData(\Magento\Data\Form\Element\AbstractElement $element)
+    protected function _addAdditionalFormElementData(AbstractElement $element)
     {
         if ($element->getId() == 'region_id') {
             $element->setNoDisplay(true);
@@ -273,7 +296,7 @@ class Address
     /**
      * Return customer address id
      *
-     * @return int|boolean
+     * @return false
      */
     public function getAddressId()
     {
@@ -281,13 +304,19 @@ class Address
     }
 
     /**
-     * Return customer address formated as one-line string
+     * Represent customer address in 'online' format.
      *
-     * @param \Magento\Customer\Model\Address $address
+     * @param \Magento\Customer\Api\Data\AddressInterface $address
      * @return string
      */
-    public function getAddressAsString($address)
+    public function getAddressAsString(\Magento\Customer\Api\Data\AddressInterface $address)
     {
-        return $this->escapeHtml($address->format('oneline'));
+        $formatTypeRenderer = $this->_addressHelper->getFormatTypeRenderer('oneline');
+        $result = '';
+        if ($formatTypeRenderer) {
+            $result = $formatTypeRenderer->renderArray($this->addressMapper->toFlatArray($address));
+        }
+
+        return $this->escapeHtml($result);
     }
 }

@@ -1,48 +1,45 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
  * Customers defined options
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Options;
 
-class Option extends \Magento\Adminhtml\Block\Widget
+use Magento\Backend\Block\Widget;
+use Magento\Catalog\Model\Product;
+
+class Option extends Widget
 {
+    /**
+     * @var Product
+     */
     protected $_productInstance;
 
+    /**
+     * @var \Magento\Framework\DataObject[]
+     */
     protected $_values;
 
+    /**
+     * @var int
+     */
     protected $_itemCount = 1;
 
+    /**
+     * @var string
+     */
     protected $_template = 'catalog/product/edit/options/option.phtml';
 
     /**
      * Core registry
      *
-     * @var \Magento\Core\Model\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
@@ -52,12 +49,12 @@ class Option extends \Magento\Adminhtml\Block\Widget
     protected $_productOptionConfig;
 
     /**
-     * @var \Magento\Catalog\Model\Product
+     * @var Product
      */
     protected $_product;
 
     /**
-     * @var \Magento\Backend\Model\Config\Source\Yesno
+     * @var \Magento\Config\Model\Config\Source\Yesno
      */
     protected $_configYesNo;
 
@@ -68,21 +65,21 @@ class Option extends \Magento\Adminhtml\Block\Widget
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Backend\Model\Config\Source\Yesno $configYesNo
+     * @param \Magento\Config\Model\Config\Source\Yesno $configYesNo
      * @param \Magento\Catalog\Model\Config\Source\Product\Options\Type $optionType
-     * @param \Magento\Catalog\Model\Product $product
-     * @param \Magento\Core\Model\Registry $registry
+     * @param Product $product
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Catalog\Model\ProductOptions\ConfigInterface $productOptionConfig
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Backend\Model\Config\Source\Yesno $configYesNo,
+        \Magento\Config\Model\Config\Source\Yesno $configYesNo,
         \Magento\Catalog\Model\Config\Source\Product\Options\Type $optionType,
-        \Magento\Catalog\Model\Product $product,
-        \Magento\Core\Model\Registry $registry,
+        Product $product,
+        \Magento\Framework\Registry $registry,
         \Magento\Catalog\Model\ProductOptions\ConfigInterface $productOptionConfig,
-        array $data = array()
+        array $data = []
     ) {
         $this->_optionType = $optionType;
         $this->_configYesNo = $configYesNo;
@@ -94,6 +91,8 @@ class Option extends \Magento\Adminhtml\Block\Widget
 
     /**
      * Class constructor
+     *
+     * @return void
      */
     protected function _construct()
     {
@@ -103,11 +102,18 @@ class Option extends \Magento\Adminhtml\Block\Widget
         $this->setCanEditPrice(true);
     }
 
+    /**
+     * @return int
+     */
     public function getItemCount()
     {
         return $this->_itemCount;
     }
 
+    /**
+     * @param int $itemCount
+     * @return $this
+     */
     public function setItemCount($itemCount)
     {
         $this->_itemCount = max($this->_itemCount, $itemCount);
@@ -117,7 +123,7 @@ class Option extends \Magento\Adminhtml\Block\Widget
     /**
      * Get Product
      *
-     * @return \Magento\Catalog\Model\Product
+     * @return Product
      */
     public function getProduct()
     {
@@ -133,6 +139,10 @@ class Option extends \Magento\Adminhtml\Block\Widget
         return $this->_productInstance;
     }
 
+    /**
+     * @param Product $product
+     * @return $this
+     */
     public function setProduct($product)
     {
         $this->_productInstance = $product;
@@ -162,13 +172,16 @@ class Option extends \Magento\Adminhtml\Block\Widget
     /**
      * Check block is readonly
      *
-     * @return boolean
+     * @return bool
      */
     public function isReadonly()
     {
         return $this->getProduct()->getOptionsReadonly();
     }
 
+    /**
+     * @return $this
+     */
     protected function _prepareLayout()
     {
         foreach ($this->_productOptionConfig->getAll() as $option) {
@@ -178,36 +191,50 @@ class Option extends \Magento\Adminhtml\Block\Widget
         return parent::_prepareLayout();
     }
 
+    /**
+     * @return mixed
+     */
     public function getAddButtonId()
     {
-        $buttonId = $this->getLayout()
-            ->getBlock('admin.product.options')
-            ->getChildBlock('add_button')->getId();
+        $buttonId = $this->getLayout()->getBlock('admin.product.options')->getChildBlock('add_button')->getId();
         return $buttonId;
     }
 
+    /**
+     * @return mixed
+     */
     public function getTypeSelectHtml()
     {
-        $select = $this->getLayout()->createBlock('Magento\View\Element\Html\Select')
-            ->setData(array(
-                'id'    => $this->getFieldId() . '_${id}_type',
+        $select = $this->getLayout()->createBlock(
+            'Magento\Framework\View\Element\Html\Select'
+        )->setData(
+            [
+                'id' => $this->getFieldId() . '_<%- data.id %>_type',
                 'class' => 'select select-product-option-type required-option-select',
-            ))
-            ->setName($this->getFieldName() . '[${id}][type]')
-            ->setOptions($this->_optionType->toOptionArray());
+            ]
+        )->setName(
+            $this->getFieldName() . '[<%- data.id %>][type]'
+        )->setOptions(
+            $this->_optionType->toOptionArray()
+        );
 
         return $select->getHtml();
     }
 
+    /**
+     * @return mixed
+     */
     public function getRequireSelectHtml()
     {
-        $select = $this->getLayout()->createBlock('Magento\View\Element\Html\Select')
-            ->setData(array(
-                'id'    => $this->getFieldId() . '_${id}_is_require',
-                'class' => 'select'
-            ))
-            ->setName($this->getFieldName() . '[${id}][is_require]')
-            ->setOptions($this->_configYesNo->toOptionArray());
+        $select = $this->getLayout()->createBlock(
+            'Magento\Framework\View\Element\Html\Select'
+        )->setData(
+            ['id' => $this->getFieldId() . '_<%- data.id %>_is_require', 'class' => 'select']
+        )->setName(
+            $this->getFieldName() . '[<%- data.id %>][is_require]'
+        )->setOptions(
+            $this->_configYesNo->toOptionArray()
+        );
 
         return $select->getHtml();
     }
@@ -221,57 +248,69 @@ class Option extends \Magento\Adminhtml\Block\Widget
     {
         $canEditPrice = $this->getCanEditPrice();
         $canReadPrice = $this->getCanReadPrice();
-        $this->getChildBlock('select_option_type')
-            ->setCanReadPrice($canReadPrice)
-            ->setCanEditPrice($canEditPrice);
+        $this->getChildBlock('select_option_type')->setCanReadPrice($canReadPrice)->setCanEditPrice($canEditPrice);
 
-        $this->getChildBlock('file_option_type')
-            ->setCanReadPrice($canReadPrice)
-            ->setCanEditPrice($canEditPrice);
+        $this->getChildBlock('file_option_type')->setCanReadPrice($canReadPrice)->setCanEditPrice($canEditPrice);
 
-        $this->getChildBlock('date_option_type')
-            ->setCanReadPrice($canReadPrice)
-            ->setCanEditPrice($canEditPrice);
+        $this->getChildBlock('date_option_type')->setCanReadPrice($canReadPrice)->setCanEditPrice($canEditPrice);
 
-        $this->getChildBlock('text_option_type')
-            ->setCanReadPrice($canReadPrice)
-            ->setCanEditPrice($canEditPrice);
+        $this->getChildBlock('text_option_type')->setCanReadPrice($canReadPrice)->setCanEditPrice($canEditPrice);
 
-        $templates = $this->getChildHtml('text_option_type') . "\n" .
-            $this->getChildHtml('file_option_type') . "\n" .
-            $this->getChildHtml('select_option_type') . "\n" .
-            $this->getChildHtml('date_option_type');
+        $templates = $this->getChildHtml(
+            'text_option_type'
+        ) . "\n" . $this->getChildHtml(
+            'file_option_type'
+        ) . "\n" . $this->getChildHtml(
+            'select_option_type'
+        ) . "\n" . $this->getChildHtml(
+            'date_option_type'
+        );
 
         return $templates;
     }
 
+    /**
+     * @return \Magento\Framework\DataObject[]
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     */
     public function getOptionValues()
     {
         $optionsArr = $this->getProduct()->getOptions();
+        if ($optionsArr == null) {
+            $optionsArr = [];
+        }
 
         if (!$this->_values || $this->getIgnoreCaching()) {
             $showPrice = $this->getCanReadPrice();
-            $values = array();
-            $scope = (int)$this->_storeManager->getStore()->getConfig(\Magento\Core\Model\Store::XML_PATH_PRICE_SCOPE);
+            $values = [];
+            $scope = (int)$this->_scopeConfig->getValue(
+                \Magento\Store\Model\Store::XML_PATH_PRICE_SCOPE,
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            );
             foreach ($optionsArr as $option) {
                 /* @var $option \Magento\Catalog\Model\Product\Option */
 
                 $this->setItemCount($option->getOptionId());
 
-                $value = array();
+                $value = [];
 
                 $value['id'] = $option->getOptionId();
                 $value['item_count'] = $this->getItemCount();
                 $value['option_id'] = $option->getOptionId();
-                $value['title'] = $this->escapeHtml($option->getTitle());
+                $value['title'] = $option->getTitle();
                 $value['type'] = $option->getType();
                 $value['is_require'] = $option->getIsRequire();
                 $value['sort_order'] = $option->getSortOrder();
                 $value['can_edit_price'] = $this->getCanEditPrice();
 
                 if ($this->getProduct()->getStoreId() != '0') {
-                    $value['checkboxScopeTitle'] = $this->getCheckboxScopeHtml($option->getOptionId(), 'title',
-                        is_null($option->getStoreTitle()));
+                    $value['checkboxScopeTitle'] = $this->getCheckboxScopeHtml(
+                        $option->getOptionId(),
+                        'title',
+                        is_null($option->getStoreTitle())
+                    );
                     $value['scopeTitleDisabled'] = is_null($option->getStoreTitle()) ? 'disabled' : null;
                 }
 
@@ -280,52 +319,68 @@ class Option extends \Magento\Adminhtml\Block\Widget
                     $itemCount = 0;
                     foreach ($option->getValues() as $_value) {
                         /* @var $_value \Magento\Catalog\Model\Product\Option\Value */
-                        $value['optionValues'][$i] = array(
+                        $value['optionValues'][$i] = [
                             'item_count' => max($itemCount, $_value->getOptionTypeId()),
                             'option_id' => $_value->getOptionId(),
                             'option_type_id' => $_value->getOptionTypeId(),
-                            'title' => $this->escapeHtml($_value->getTitle()),
-                            'price' => ($showPrice)
-                                ? $this->getPriceValue($_value->getPrice(), $_value->getPriceType()) : '',
-                            'price_type' => ($showPrice) ? $_value->getPriceType() : 0,
-                            'sku' => $this->escapeHtml($_value->getSku()),
+                            'title' => $_value->getTitle(),
+                            'price' => $showPrice ? $this->getPriceValue(
+                                $_value->getPrice(),
+                                $_value->getPriceType()
+                            ) : '',
+                            'price_type' => $showPrice ? $_value->getPriceType() : 0,
+                            'sku' => $_value->getSku(),
                             'sort_order' => $_value->getSortOrder(),
-                        );
+                        ];
 
                         if ($this->getProduct()->getStoreId() != '0') {
                             $value['optionValues'][$i]['checkboxScopeTitle'] = $this->getCheckboxScopeHtml(
-                                $_value->getOptionId(), 'title', is_null($_value->getStoreTitle()),
-                                $_value->getOptionTypeId());
-                            $value['optionValues'][$i]['scopeTitleDisabled'] = is_null($_value->getStoreTitle())
-                                ? 'disabled' : null;
-                            if ($scope == \Magento\Core\Model\Store::PRICE_SCOPE_WEBSITE) {
+                                $_value->getOptionId(),
+                                'title',
+                                is_null($_value->getStoreTitle()),
+                                $_value->getOptionTypeId()
+                            );
+                            $value['optionValues'][$i]['scopeTitleDisabled'] = is_null(
+                                $_value->getStoreTitle()
+                            ) ? 'disabled' : null;
+                            if ($scope == \Magento\Store\Model\Store::PRICE_SCOPE_WEBSITE) {
                                 $value['optionValues'][$i]['checkboxScopePrice'] = $this->getCheckboxScopeHtml(
-                                    $_value->getOptionId(), 'price', is_null($_value->getstorePrice()),
-                                    $_value->getOptionTypeId());
-                                $value['optionValues'][$i]['scopePriceDisabled'] = is_null($_value->getStorePrice())
-                                    ? 'disabled' : null;
+                                    $_value->getOptionId(),
+                                    'price',
+                                    is_null($_value->getstorePrice()),
+                                    $_value->getOptionTypeId(),
+                                    ['$(this).up(1).previous()']
+                                );
+                                $value['optionValues'][$i]['scopePriceDisabled'] = is_null(
+                                    $_value->getStorePrice()
+                                ) ? 'disabled' : null;
                             }
                         }
                         $i++;
                     }
                 } else {
-                    $value['price'] = ($showPrice)
-                        ? $this->getPriceValue($option->getPrice(), $option->getPriceType()) : '';
+                    $value['price'] = $showPrice ? $this->getPriceValue(
+                        $option->getPrice(),
+                        $option->getPriceType()
+                    ) : '';
                     $value['price_type'] = $option->getPriceType();
-                    $value['sku'] = $this->escapeHtml($option->getSku());
+                    $value['sku'] = $option->getSku();
                     $value['max_characters'] = $option->getMaxCharacters();
                     $value['file_extension'] = $option->getFileExtension();
                     $value['image_size_x'] = $option->getImageSizeX();
                     $value['image_size_y'] = $option->getImageSizeY();
                     if ($this->getProduct()->getStoreId() != '0'
-                        && $scope == \Magento\Core\Model\Store::PRICE_SCOPE_WEBSITE
+                        && $scope == \Magento\Store\Model\Store::PRICE_SCOPE_WEBSITE
                     ) {
-                        $value['checkboxScopePrice'] = $this->getCheckboxScopeHtml($option->getOptionId(), 'price',
-                            is_null($option->getStorePrice()));
+                        $value['checkboxScopePrice'] = $this->getCheckboxScopeHtml(
+                            $option->getOptionId(),
+                            'price',
+                            is_null($option->getStorePrice())
+                        );
                         $value['scopePriceDisabled'] = is_null($option->getStorePrice()) ? 'disabled' : null;
                     }
                 }
-                $values[] = new \Magento\Object($value);
+                $values[] = new \Magento\Framework\DataObject($value);
             }
             $this->_values = $values;
         }
@@ -340,9 +395,10 @@ class Option extends \Magento\Adminhtml\Block\Widget
      * @param string $name
      * @param boolean $checked
      * @param string $select_id
+     * @param array $containers
      * @return string
      */
-    public function getCheckboxScopeHtml($id, $name, $checked = true, $select_id = '-1')
+    public function getCheckboxScopeHtml($id, $name, $checked = true, $select_id = '-1', array $containers = [])
     {
         $checkedHtml = '';
         if ($checked) {
@@ -354,17 +410,29 @@ class Option extends \Magento\Adminhtml\Block\Widget
             $selectNameHtml = '[values][' . $select_id . ']';
             $selectIdHtml = 'select_' . $select_id . '_';
         }
-        $useDefault = '<div class="field-service">'
-            . '<label for="' . $this->getFieldId() . '_' . $id . '_' . $selectIdHtml . $name . '" class="use-default">'
-            . '<input value="1" type="checkbox" class="use-default-control"'
-            . 'name="' . $this->getFieldName() . '[' . $id . ']' . $selectNameHtml . '[scope][' . $name . ']"'
-            . 'id="' . $this->getFieldId() . '_' . $id . '_' . $selectIdHtml . $name . '_use_default"' . $checkedHtml
-            .' /><span class="use-default-label">' . __('Use Default')
-            . '</span></label></div>';
+        $containers[] = '$(this).up(1)';
+        $containers = implode(',', $containers);
+        $localId = $this->getFieldId() . '_' . $id . '_' . $selectIdHtml . $name . '_use_default';
+        $localName = "options_use_default[" . $id . "]" . $selectNameHtml . "[" . $name . "]";
+        $useDefault =
+            '<div class="field-service">'
+            . '<input type="checkbox" class="use-default-control"'
+            . ' name="' . $localName . '"' . 'id="' . $localId . '"'
+            . ' value=""'
+            . $checkedHtml
+            . ' onchange="toggleSeveralValueElements(this, [' . $containers . ']);" '
+            . ' />'
+            . '<label for="' . $localId . '" class="use-default">'
+            . '<span class="use-default-label">' . __('Use Default') . '</span></label></div>';
 
         return $useDefault;
     }
 
+    /**
+     * @param float $value
+     * @param string $type
+     * @return string
+     */
     public function getPriceValue($value, $type)
     {
         if ($type == 'percent') {
@@ -392,5 +460,15 @@ class Option extends \Magento\Adminhtml\Block\Widget
     public function getCustomOptionsUrl()
     {
         return $this->getUrl('catalog/*/customOptions');
+    }
+
+    /**
+     * Return current product id
+     *
+     * @return null|int
+     */
+    public function getCurrentProductId()
+    {
+        return $this->getProduct()->getId();
     }
 }

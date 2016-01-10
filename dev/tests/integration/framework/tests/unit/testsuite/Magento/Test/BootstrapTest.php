@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -33,7 +12,7 @@ namespace Magento\Test;
 class BootstrapTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var \Magento\TestFramework\Bootstrap|PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\TestFramework\Bootstrap|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_object;
 
@@ -42,40 +21,44 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected $_requiredSettings = array(
-        'TESTS_LOCAL_CONFIG_FILE'       => 'etc/local-mysql.xml',
-        'TESTS_LOCAL_CONFIG_EXTRA_FILE' => 'etc/integration-tests-config.xml',
-    );
+    protected $_requiredSettings = [
+        'TESTS_INSTALL_CONFIG_FILE' => 'etc/install-config-mysql.php',
+    ];
 
     /**
-     * @var \Magento\TestFramework\Bootstrap\Settings
+     * @var \Magento\TestFramework\Bootstrap\Settings|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_settings;
 
     /**
-     * @var \Magento\TestFramework\Bootstrap\Environment|PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\TestFramework\Bootstrap\Environment|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_envBootstrap;
 
     /**
-     * @var \Magento\TestFramework\Bootstrap\DocBlock|PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\TestFramework\Bootstrap\DocBlock|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_docBlockBootstrap;
 
     /**
-     * @var \Magento\TestFramework\Bootstrap\Profiler|PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\TestFramework\Bootstrap\Profiler|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_profilerBootstrap;
 
     /**
-     * @var \Magento\TestFramework\Bootstrap\Memory
+     * @var \Magento\TestFramework\Bootstrap\MemoryFactory|\PHPUnit_Framework_MockObject_MockObject
      */
-    protected $_memoryBootstrap;
+    protected $memoryFactory;
 
     /**
-     * @var \Magento\Shell|PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\Framework\Shell|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_shell;
+
+    /**
+     * @var \Magento\TestFramework\Application|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $application;
 
     /**
      * @var string
@@ -85,27 +68,33 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->_integrationTestsDir = realpath(__DIR__ . '/../../../../../../');
-        $this->_settings = new \Magento\TestFramework\Bootstrap\Settings(
-            $this->_integrationTestsDir, $this->_requiredSettings);
+        $this->_settings = $this->getMock('\Magento\TestFramework\Bootstrap\Settings', [], [], '', false);
         $this->_envBootstrap = $this->getMock(
-            'Magento\TestFramework\Bootstrap\Environment', array('emulateHttpRequest', 'emulateSession')
+            'Magento\TestFramework\Bootstrap\Environment',
+            ['emulateHttpRequest', 'emulateSession']
         );
         $this->_docBlockBootstrap = $this->getMock(
-            'Magento\TestFramework\Bootstrap\DocBlock', array('registerAnnotations'), array(__DIR__)
+            'Magento\TestFramework\Bootstrap\DocBlock',
+            ['registerAnnotations'],
+            [__DIR__]
         );
-        $profilerDriver = $this->getMock('Magento\Profiler\Driver\Standard', array('registerOutput'));
+        $profilerDriver = $this->getMock('Magento\Framework\Profiler\Driver\Standard', ['registerOutput']);
         $this->_profilerBootstrap = $this->getMock(
-            'Magento\TestFramework\Bootstrap\Profiler', array('registerFileProfiler', 'registerBambooProfiler'),
-            array($profilerDriver)
+            'Magento\TestFramework\Bootstrap\Profiler',
+            ['registerFileProfiler', 'registerBambooProfiler'],
+            [$profilerDriver]
         );
-        $this->_memoryBootstrap = $this->getMock(
-            'Magento\TestFramework\Bootstrap\Memory', array('activateStatsDisplaying', 'activateLimitValidation'),
-            array(), '', false
-        );
-        $this->_shell = $this->getMock('Magento\Shell', array('execute'));
+        $this->_shell = $this->getMock('Magento\Framework\Shell', ['execute'], [], '', false);
+        $this->application = $this->getMock('\Magento\TestFramework\Application', [], [], '', false);
+        $this->memoryFactory = $this->getMock('\Magento\TestFramework\Bootstrap\MemoryFactory', [], [], '', false);
         $this->_object = new \Magento\TestFramework\Bootstrap(
-            $this->_settings, $this->_envBootstrap, $this->_docBlockBootstrap, $this->_profilerBootstrap,
-            $this->_shell, __DIR__
+            $this->_settings,
+            $this->_envBootstrap,
+            $this->_docBlockBootstrap,
+            $this->_profilerBootstrap,
+            $this->_shell,
+            $this->application,
+            $this->memoryFactory
         );
     }
 
@@ -120,195 +109,84 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
         $this->_shell = null;
     }
 
-    /**
-     * @param array $fixtureSettings
-     * @return \Magento\TestFramework\Application|PHPUnit_Framework_MockObject_MockObject
-     */
-    protected function _injectApplicationMock(array $fixtureSettings = array())
-    {
-        $fixtureSettings += $this->_requiredSettings;
-        $application = $this->getMock(
-            'Magento\TestFramework\Application',
-            array('cleanup', 'isInstalled', 'initialize', 'install'), array(), '', false
-        );
-        $settings = new \Magento\TestFramework\Bootstrap\Settings($this->_integrationTestsDir, $fixtureSettings);
-        // prevent calling the constructor because of mocking the method it invokes
-        $this->_object = $this->getMock(
-            'Magento\TestFramework\Bootstrap', array('_createApplication', '_createMemoryBootstrap'), array(), '', false
-        );
-        $this->_object
-            ->expects($this->any())
-            ->method('_createApplication')
-            ->will($this->returnValue($application))
-        ;
-        // invoke the constructor explicitly
-        $this->_object->__construct(
-            $settings, $this->_envBootstrap, $this->_docBlockBootstrap, $this->_profilerBootstrap,
-            $this->_shell, __DIR__
-        );
-        $this->_object
-            ->expects($this->any())
-            ->method('_createMemoryBootstrap')
-            ->will($this->returnValue($this->_memoryBootstrap))
-        ;
-        return $application;
-    }
-
     public function testGetApplication()
     {
-        $application = $this->_object->getApplication();
-        $this->assertInstanceOf('Magento\TestFramework\Application', $application);
-        $this->assertStringStartsWith(__DIR__ . '/sandbox-mysql-', $application->getInstallDir());
-        $this->assertInstanceOf('Magento\TestFramework\Db\Mysql', $application->getDbInstance());
-        $this->assertSame($application, $this->_object->getApplication());
+        $this->assertSame($this->application, $this->_object->getApplication());
     }
 
-    public function testGetDbVendorName()
+    public function testRunBootstrap()
     {
-        $this->assertEquals('mysql', $this->_object->getDbVendorName());
-    }
-
-    public function testRunBootstrapEnvironment()
-    {
-        $this->_injectApplicationMock();
-        $this->_envBootstrap
-            ->expects($this->once())
+        $this->_envBootstrap->expects($this->once())
             ->method('emulateHttpRequest')
-            ->with($this->identicalTo($_SERVER))
-        ;
-        $this->_envBootstrap
-            ->expects($this->once())
+            ->with($this->identicalTo($_SERVER));
+        $this->_envBootstrap->expects($this->once())
             ->method('emulateSession')
-            ->with($this->identicalTo(isset($_SESSION) ? $_SESSION : null))
-        ;
-        $this->_object->runBootstrap();
-    }
+            ->with($this->identicalTo(isset($_SESSION) ? $_SESSION : null));
 
-    public function testRunBootstrapProfilerDisabled()
-    {
-        $this->_injectApplicationMock();
-        $this->_profilerBootstrap
-            ->expects($this->never())
-            ->method($this->anything())
-        ;
+        $memUsageLimit = '100B';
+        $memLeakLimit = '60B';
+        $settingsMap = [
+            ['TESTS_MEM_USAGE_LIMIT', 0, $memUsageLimit],
+            ['TESTS_MEM_LEAK_LIMIT', 0, $memLeakLimit],
+        ];
+        $this->_settings->expects($this->any())
+            ->method('get')
+            ->will($this->returnValueMap($settingsMap));
+        $memoryBootstrap = $this->getMock(
+            'Magento\TestFramework\Bootstrap\Memory',
+            ['activateStatsDisplaying', 'activateLimitValidation'],
+            [],
+            '',
+            false
+        );
+        $memoryBootstrap->expects($this->once())->method('activateStatsDisplaying');
+        $memoryBootstrap->expects($this->once())->method('activateLimitValidation');
+        $this->memoryFactory->expects($this->once())
+            ->method('create')
+            ->with($memUsageLimit, $memLeakLimit)
+            ->will($this->returnValue($memoryBootstrap));
+
+        $this->_docBlockBootstrap->expects($this->once())
+            ->method('registerAnnotations')
+            ->with($this->isInstanceOf('Magento\TestFramework\Application'));
+
+        $this->_profilerBootstrap->expects($this->never())->method($this->anything());
+
         $this->_object->runBootstrap();
     }
 
     public function testRunBootstrapProfilerEnabled()
     {
-        $baseDir = $this->_integrationTestsDir;
-        $dirSep = DIRECTORY_SEPARATOR;
-        $this->_injectApplicationMock(array(
-            'TESTS_PROFILER_FILE'                   => 'profiler.csv',
-            'TESTS_BAMBOO_PROFILER_FILE'            => 'profiler_bamboo.csv',
-            'TESTS_BAMBOO_PROFILER_METRICS_FILE'    => 'profiler_metrics.php',
-        ));
+        $memoryBootstrap = $this->getMock(
+            'Magento\TestFramework\Bootstrap\Memory',
+            ['activateStatsDisplaying', 'activateLimitValidation'],
+            [],
+            '',
+            false
+        );
+        $memoryBootstrap->expects($this->once())->method('activateStatsDisplaying');
+        $memoryBootstrap->expects($this->once())->method('activateLimitValidation');
+        $this->memoryFactory->expects($this->once())
+            ->method('create')
+            ->with(0, 0)
+            ->will($this->returnValue($memoryBootstrap));
+
+        $settingsMap = [
+            ['TESTS_PROFILER_FILE', '', 'profiler.csv'],
+            ['TESTS_BAMBOO_PROFILER_FILE', '', 'profiler_bamboo.csv'],
+            ['TESTS_BAMBOO_PROFILER_METRICS_FILE', '', 'profiler_metrics.php'],
+        ];
+        $this->_settings->expects($this->any())
+            ->method('getAsFile')
+            ->will($this->returnValueMap($settingsMap));
         $this->_profilerBootstrap
             ->expects($this->once())
             ->method('registerFileProfiler')
-            ->with("{$baseDir}{$dirSep}profiler.csv")
-        ;
+            ->with("profiler.csv");
         $this->_profilerBootstrap
             ->expects($this->once())
             ->method('registerBambooProfiler')
-            ->with("{$baseDir}{$dirSep}profiler_bamboo.csv", "{$baseDir}{$dirSep}profiler_metrics.php")
-        ;
-        $this->_object->runBootstrap();
-    }
-
-    public function testRunBootstrapMemoryWatch()
-    {
-        $this->_injectApplicationMock(array(
-            'TESTS_MEM_USAGE_LIMIT' => 100,
-            'TESTS_MEM_LEAK_LIMIT'  => 60,
-        ));
-        $this->_object
-            ->expects($this->once())
-            ->method('_createMemoryBootstrap')
-            ->with(100, 60)
-            ->will($this->returnValue($this->_memoryBootstrap))
-        ;
-        $this->_memoryBootstrap
-            ->expects($this->once())
-            ->method('activateStatsDisplaying')
-        ;
-        $this->_memoryBootstrap
-            ->expects($this->once())
-            ->method('activateLimitValidation')
-        ;
-        $this->_object->runBootstrap();
-    }
-
-    public function testRunBootstrapDocBlockAnnotations()
-    {
-        $this->_injectApplicationMock();
-        $this->_docBlockBootstrap
-            ->expects($this->once())
-            ->method('registerAnnotations')
-            ->with($this->isInstanceOf('Magento\TestFramework\Application'))
-        ;
-        $this->_object->runBootstrap();
-    }
-
-    public function testRunBootstrapAppCleanup()
-    {
-        $application = $this->_injectApplicationMock(array(
-            'TESTS_CLEANUP' => 'enabled',
-        ));
-        $application
-            ->expects($this->once())
-            ->method('cleanup')
-        ;
-        $this->_object->runBootstrap();
-    }
-
-    public function testRunBootstrapAppInitialize()
-    {
-        $application = $this->_injectApplicationMock();
-        $application
-            ->expects($this->once())
-            ->method('isInstalled')
-            ->will($this->returnValue(true))
-        ;
-        $application
-            ->expects($this->once())
-            ->method('initialize')
-        ;
-        $application
-            ->expects($this->never())
-            ->method('install')
-        ;
-        $application
-            ->expects($this->never())
-            ->method('cleanup')
-        ;
-        $this->_object->runBootstrap();
-    }
-
-    public function testRunBootstrapAppInstall()
-    {
-        $adminUserName = \Magento\TestFramework\Bootstrap::ADMIN_NAME;
-        $adminPassword = \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD;
-        $adminRoleName = \Magento\TestFramework\Bootstrap::ADMIN_ROLE_NAME;
-        $application = $this->_injectApplicationMock();
-        $application
-            ->expects($this->once())
-            ->method('isInstalled')
-            ->will($this->returnValue(false))
-        ;
-        $application
-            ->expects($this->once())
-            ->method('install')
-            ->with($adminUserName, $adminPassword, $adminRoleName)
-        ;
-        $application
-            ->expects($this->never())
-            ->method('initialize')
-        ;
-        $application
-            ->expects($this->never())
-            ->method('cleanup')
-        ;
+            ->with("profiler_bamboo.csv", "profiler_metrics.php");
         $this->_object->runBootstrap();
     }
 }

@@ -1,31 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
-
 namespace Magento\Test\Annotation;
 
 /**
@@ -44,8 +21,8 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
     {
         $this->_object = $this->getMock(
             'Magento\TestFramework\Annotation\DataFixture',
-            array('_applyOneFixture'),
-            array(__DIR__ . '/_files')
+            ['_applyOneFixture'],
+            [__DIR__ . '/_files']
         );
     }
 
@@ -62,7 +39,7 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      */
     public function testConstructorException()
     {
@@ -79,8 +56,7 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
         $eventParam = new \Magento\TestFramework\Event\Param\Transaction();
         $this->_object->startTransaction($this);
         $this->_object->startTestTransactionRequest($this, $eventParam);
-        $this->assertFalse($eventParam->isTransactionStartRequested());
-        $this->assertFalse($eventParam->isTransactionRollbackRequested());
+        $this->assertTrue($eventParam->isTransactionStartRequested());
     }
 
     /**
@@ -98,12 +74,31 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
         $this->_object->startTransaction($this);
         $this->_object->startTestTransactionRequest($this, $eventParam);
         $this->assertTrue($eventParam->isTransactionStartRequested());
-        $this->assertTrue($eventParam->isTransactionRollbackRequested());
+        $this->assertFalse($eventParam->isTransactionRollbackRequested());
+    }
+
+    /**
+     * @magentoDbIsolation disabled
+     * @magentoDataFixture sampleFixtureTwo
+     * @magentoDataFixture path/to/fixture/script.php
+     */
+    public function testDisabledDbIsolation()
+    {
+        $eventParam = new \Magento\TestFramework\Event\Param\Transaction();
+        $this->_object->startTestTransactionRequest($this, $eventParam);
+        $this->assertFalse($eventParam->isTransactionStartRequested());
+        $this->assertFalse($eventParam->isTransactionRollbackRequested());
+
+        $eventParam = new \Magento\TestFramework\Event\Param\Transaction();
+        $this->_object->startTransaction($this);
+        $this->_object->startTestTransactionRequest($this, $eventParam);
+        $this->assertFalse($eventParam->isTransactionStartRequested());
+        $this->assertFalse($eventParam->isTransactionRollbackRequested());
     }
 
     /**
      * @magentoDataFixture fixture\path\must\not\contain\backslash.php
-     * @expectedException \Magento\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      */
     public function testStartTestTransactionRequestInvalidPath()
     {
@@ -130,11 +125,7 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
 
     public function testStartTransactionClassAnnotation()
     {
-        $this->_object
-            ->expects($this->once())
-            ->method('_applyOneFixture')
-            ->with(array(__CLASS__, 'sampleFixtureOne'))
-        ;
+        $this->_object->expects($this->once())->method('_applyOneFixture')->with([__CLASS__, 'sampleFixtureOne']);
         $this->_object->startTransaction($this);
     }
 
@@ -144,16 +135,14 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
      */
     public function testStartTransactionMethodAnnotation()
     {
-        $this->_object
-            ->expects($this->at(0))
-            ->method('_applyOneFixture')
-            ->with(array(__CLASS__, 'sampleFixtureTwo'))
-        ;
-        $this->_object
-            ->expects($this->at(1))
-            ->method('_applyOneFixture')
-            ->with($this->stringEndsWith('path/to/fixture/script.php'))
-        ;
+        $this->_object->expects($this->at(0))->method('_applyOneFixture')->with([__CLASS__, 'sampleFixtureTwo']);
+        $this->_object->expects(
+            $this->at(1)
+        )->method(
+            '_applyOneFixture'
+        )->with(
+            $this->stringEndsWith('path/to/fixture/script.php')
+        );
         $this->_object->startTransaction($this);
     }
 
@@ -164,14 +153,15 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
     public function testRollbackTransactionRevertFixtureMethod()
     {
         $this->_object->startTransaction($this);
-        $this->_object
-            ->expects($this->once())
-            ->method('_applyOneFixture')
-            ->with(array(__CLASS__, 'sampleFixtureTwoRollback'))
-        ;
+        $this->_object->expects(
+            $this->once()
+        )->method(
+            '_applyOneFixture'
+        )->with(
+            [__CLASS__, 'sampleFixtureTwoRollback']
+        );
         $this->_object->rollbackTransaction();
     }
-
 
     /**
      * @magentoDataFixture path/to/fixture/script.php
@@ -180,11 +170,13 @@ class DataFixtureTest extends \PHPUnit_Framework_TestCase
     public function testRollbackTransactionRevertFixtureFile()
     {
         $this->_object->startTransaction($this);
-        $this->_object
-            ->expects($this->once())
-            ->method('_applyOneFixture')
-            ->with($this->stringEndsWith('sample_fixture_two_rollback.php'))
-        ;
+        $this->_object->expects(
+            $this->once()
+        )->method(
+            '_applyOneFixture'
+        )->with(
+            $this->stringEndsWith('sample_fixture_two_rollback.php')
+        );
         $this->_object->rollbackTransaction();
     }
 }

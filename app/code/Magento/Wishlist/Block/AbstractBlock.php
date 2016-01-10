@@ -1,45 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Wishlist
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
+namespace Magento\Wishlist\Block;
 
 /**
  * Wishlist Product Items abstract Block
- *
- * @category   Magento
- * @package    Magento_Wishlist
- * @author     Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Wishlist\Block;
-
 abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProduct
 {
     /**
      * Wishlist Product Items Collection
      *
-     * @var \Magento\Wishlist\Model\Resource\Item\Collection
+     * @var \Magento\Wishlist\Model\ResourceModel\Item\Collection
      */
     protected $_collection;
 
@@ -51,77 +26,24 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     protected $_wishlist;
 
     /**
-     * List of block settings to render prices for different product types
-     *
-     * @var array
+     * @var \Magento\Framework\App\Http\Context
      */
-    protected $_itemPriceBlockTypes = array();
+    protected $httpContext;
 
     /**
-     * List of block instances to render prices for different product types
-     *
-     * @var array
-     */
-    protected $_cachedItemPriceBlocks = array();
-
-    /**
-     * Wishlist data
-     *
-     * @var \Magento\Wishlist\Helper\Data
-     */
-    protected $_wishlistData;
-
-    /**
-     * @var \Magento\Customer\Model\Session
-     */
-    protected $_customerSession;
-
-    /**
-     * @var \Magento\Catalog\Model\ProductFactory
-     */
-    protected $_productFactory;
-
-    /**
-     * @param \Magento\View\Element\Template\Context $context
-     * @param \Magento\Catalog\Model\Config $catalogConfig
-     * @param \Magento\Core\Model\Registry $registry
-     * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\Catalog\Helper\Data $catalogData
-     * @param \Magento\Math\Random $mathRandom
-     * @param \Magento\Wishlist\Helper\Data $wishlistData
-     * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Catalog\Model\ProductFactory $productFactory
+     * @param \Magento\Catalog\Block\Product\Context $context
+     * @param \Magento\Framework\App\Http\Context $httpContext
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
-        \Magento\Catalog\Model\Config $catalogConfig,
-        \Magento\Core\Model\Registry $registry,
-        \Magento\Tax\Helper\Data $taxData,
-        \Magento\Catalog\Helper\Data $catalogData,
-        \Magento\Math\Random $mathRandom,
-        \Magento\Wishlist\Helper\Data $wishlistData,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
-        array $data = array()
+        \Magento\Catalog\Block\Product\Context $context,
+        \Magento\Framework\App\Http\Context $httpContext,
+        array $data = []
     ) {
-        $this->_wishlistData = $wishlistData;
-        $this->_customerSession = $customerSession;
-        $this->_productFactory = $productFactory;
-        parent::__construct($context, $catalogConfig, $registry, $taxData, $catalogData, $mathRandom, $data);
-    }
-
-    /**
-     * Internal constructor, that is called from real constructor
-     *
-     */
-    protected function _construct()
-    {
-        parent::_construct();
-        $this->addItemPriceBlockType(
-            'default',
-            'Magento\Wishlist\Block\Render\Item\Price',
-            'render/item/price.phtml'
+        $this->httpContext = $httpContext;
+        parent::__construct(
+            $context,
+            $data
         );
     }
 
@@ -132,17 +54,7 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
      */
     protected function _getHelper()
     {
-        return $this->_wishlistData;
-    }
-
-    /**
-     * Retrieve Customer Session instance
-     *
-     * @return \Magento\Customer\Model\Session
-     */
-    protected function _getCustomerSession()
-    {
-        return $this->_customerSession;
+        return $this->_wishlistHelper;
     }
 
     /**
@@ -158,8 +70,9 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     /**
      * Prepare additional conditions to collection
      *
-     * @param \Magento\Wishlist\Model\Resource\Item\Collection $collection
+     * @param \Magento\Wishlist\Model\ResourceModel\Item\Collection $collection
      * @return \Magento\Wishlist\Block\Customer\Wishlist
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function _prepareCollection($collection)
     {
@@ -169,7 +82,7 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     /**
      * Create wishlist item collection
      *
-     * @return \Magento\Wishlist\Model\Resource\Item\Collection
+     * @return \Magento\Wishlist\Model\ResourceModel\Item\Collection
      */
     protected function _createWishlistItemCollection()
     {
@@ -179,11 +92,11 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     /**
      * Retrieve Wishlist Product Items collection
      *
-     * @return \Magento\Wishlist\Model\Resource\Item\Collection
+     * @return \Magento\Wishlist\Model\ResourceModel\Item\Collection
      */
     public function getWishlistItems()
     {
-        if (is_null($this->_collection)) {
+        if ($this->_collection === null) {
             $this->_collection = $this->_createWishlistItemCollection();
             $this->_prepareCollection($this->_collection);
         }
@@ -202,26 +115,26 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     }
 
     /**
-     * Retrieve URL for Removing item from wishlist
+     * Retrieve params for Removing item from wishlist
      *
      * @param \Magento\Catalog\Model\Product|\Magento\Wishlist\Model\Item $item
      *
      * @return string
      */
-    public function getItemRemoveUrl($item)
+    public function getItemRemoveParams($item)
     {
-        return $this->_getHelper()->getRemoveUrl($item);
+        return $this->_getHelper()->getRemoveParams($item);
     }
 
     /**
-     * Retrieve Add Item to shopping cart URL
+     * Retrieve Add Item to shopping cart params for POST request
      *
      * @param string|\Magento\Catalog\Model\Product|\Magento\Wishlist\Model\Item $item
      * @return string
      */
-    public function getItemAddToCartUrl($item)
+    public function getItemAddToCartParams($item)
     {
-        return $this->_getHelper()->getAddToCartUrl($item);
+        return $this->_getHelper()->getAddToCartParams($item);
     }
 
     /**
@@ -236,17 +149,27 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     }
 
     /**
-     * Retrieve URL for adding Product to wishlist
+     * Retrieve URL for adding All items to shopping cart from shared wishlist
+     *
+     * @return string
+     */
+    public function getSharedAddAllToCartUrl()
+    {
+        return $this->_getHelper()->getSharedAddAllToCartUrl();
+    }
+
+    /**
+     * Retrieve params for adding Product to wishlist
      *
      * @param \Magento\Catalog\Model\Product $product
      * @return string
      */
-    public function getAddToWishlistUrl($product)
+    public function getAddToWishlistParams($product)
     {
-        return $this->_getHelper()->getAddUrl($product);
+        return $this->_getHelper()->getAddParams($product);
     }
 
-     /**
+    /**
      * Returns item configure url in wishlist
      *
      * @param \Magento\Catalog\Model\Product|\Magento\Wishlist\Model\Item $product
@@ -255,16 +178,8 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
      */
     public function getItemConfigureUrl($product)
     {
-        if ($product instanceof \Magento\Catalog\Model\Product) {
-            $id = $product->getWishlistItemId();
-        } else {
-            $id = $product->getId();
-        }
-        $params = array('id' => $id);
-
-        return $this->getUrl('wishlist/index/configure/', $params);
+        return $this->_getHelper()->getConfigureUrl($product);
     }
-
 
     /**
      * Retrieve Escaped Description for Wishlist Item
@@ -299,7 +214,7 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
      */
     public function getFormatedDate($date)
     {
-        return $this->formatDate($date, \Magento\Core\Model\LocaleInterface::FORMAT_TYPE_MEDIUM);
+        return $this->formatDate($date, \IntlDateFormatter::MEDIUM);
     }
 
     /**
@@ -354,101 +269,15 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
     }
 
     /**
-     * Adds special block to render price for item with specific product type
-     *
-     * @param string $type
-     * @param string $block
-     * @param string $template
-     */
-    public function addItemPriceBlockType($type, $block = '', $template = '')
-    {
-        if ($type) {
-            $this->_itemPriceBlockTypes[$type] = array(
-                'block' => $block,
-                'template' => $template
-            );
-        }
-    }
-
-    /**
-     * Returns block to render item with some product type
-     *
-     * @param string $productType
-     * @return \Magento\View\Element\Template
-     */
-    protected function _getItemPriceBlock($productType)
-    {
-        if (!isset($this->_itemPriceBlockTypes[$productType])) {
-            $productType = 'default';
-        }
-
-        if (!isset($this->_cachedItemPriceBlocks[$productType])) {
-            $blockType = $this->_itemPriceBlockTypes[$productType]['block'];
-            $template = $this->_itemPriceBlockTypes[$productType]['template'];
-            $block = $this->getLayout()->createBlock($blockType)
-                ->setTemplate($template);
-            $this->_cachedItemPriceBlocks[$productType] = $block;
-        }
-        return $this->_cachedItemPriceBlocks[$productType];
-    }
-
-    /**
-     * Returns product price block html
-     * Overwrites parent price html return to be ready to show configured, partially configured and
-     * non-configured products
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @param bool $displayMinimalPrice
-     * @param string $idSuffix
-     *
-     * @return string
-     */
-    public function getPriceHtml($product, $displayMinimalPrice = false, $idSuffix = '')
-    {
-        $type_id = $product->getTypeId();
-        if ($this->_catalogData->canApplyMsrp($product)) {
-            $realPriceHtml = $this->_preparePriceRenderer($type_id)
-                ->setProduct($product)
-                ->setDisplayMinimalPrice($displayMinimalPrice)
-                ->setIdSuffix($idSuffix)
-                ->setIsEmulateMode(true)
-                ->toHtml();
-            $product->setAddToCartUrl($this->getAddToCartUrl($product));
-            $product->setRealPriceHtml($realPriceHtml);
-            $type_id = $this->_mapRenderer;
-        }
-
-        return $this->_preparePriceRenderer($type_id)
-            ->setProduct($product)
-            ->setDisplayMinimalPrice($displayMinimalPrice)
-            ->setIdSuffix($idSuffix)
-            ->toHtml();
-    }
-
-    /**
      * Retrieve URL to item Product
      *
      * @param  \Magento\Wishlist\Model\Item|\Magento\Catalog\Model\Product $item
      * @param  array $additional
      * @return string
      */
-    public function getProductUrl($item, $additional = array())
+    public function getProductUrl($item, $additional = [])
     {
-        if ($item instanceof \Magento\Catalog\Model\Product) {
-            $product = $item;
-        } else {
-            $product = $item->getProduct();
-        }
-        $buyRequest = $item->getBuyRequest();
-        if (is_object($buyRequest)) {
-            $config = $buyRequest->getSuperProductConfig();
-            if ($config && !empty($config['product_id'])) {
-                $product = $this->_productFactory->create()
-                    ->setStoreId($this->_storeManager->getStore()->getStoreId())
-                    ->load($config['product_id']);
-            }
-        }
-        return parent::getProductUrl($product, $additional);
+        return $this->_getHelper()->getProductUrl($item, $additional);
     }
 
     /**
@@ -459,17 +288,31 @@ abstract class AbstractBlock extends \Magento\Catalog\Block\Product\AbstractProd
      */
     public function getImageUrl($product)
     {
-        return (string)$this->helper('Magento\Catalog\Helper\Image')->init($product, 'small_image')
-            ->resize($this->getImageSize());
+        return $this->_imageHelper->init($product, 'wishlist_small_image')->getUrl();
     }
 
     /**
-     * Product image size getter
+     * Return HTML block with price
      *
-     * @return int
+     * @param \Magento\Catalog\Model\Product\Configuration\Item\ItemInterface $item
+     * @param string $priceType
+     * @param string $renderZone
+     * @param array $arguments
+     * @return string|null
      */
-    public function getImageSize()
-    {
-        return $this->getVar('product_image_size', 'Magento_Wishlist');
+    public function getItemPriceHtml(
+        \Magento\Catalog\Model\Product\Configuration\Item\ItemInterface $item,
+        $priceType = \Magento\Catalog\Pricing\Price\ConfiguredPriceInterface::CONFIGURED_PRICE_CODE,
+        $renderZone = \Magento\Framework\Pricing\Render::ZONE_ITEM_LIST,
+        array $arguments = []
+    ) {
+        /** @var \Magento\Framework\Pricing\Render $priceRender */
+        $priceRender = $this->getLayout()->getBlock('product.price.render.default');
+        $priceRender->setItem($item);
+        $arguments += [
+            'zone'         => $renderZone,
+            'render_block' => $priceRender
+        ];
+        return $priceRender ? $priceRender->render($priceType, $item->getProduct(), $arguments) : null;
     }
 }

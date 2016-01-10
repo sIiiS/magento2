@@ -1,39 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Sales
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Sales\Model\Config;
 
 /**
  * Configuration class for ordered items
  *
- * @category    Magento
- * @package     Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Sales\Model\Config;
-
-abstract class Ordered extends \Magento\Core\Model\Config\Base
+abstract class Ordered extends \Magento\Framework\App\Config\Base
 {
     /**
      * Cache key for collectors
@@ -61,29 +38,29 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
      *
      * @var array
      */
-    protected $_models = array();
+    protected $_models = [];
 
     /**
      * Models configuration
      *
      * @var array
      */
-    protected $_modelsConfig = array();
+    protected $_modelsConfig = [];
 
     /**
      * Sorted models
      *
      * @var array
      */
-    protected $_collectors = array();
+    protected $_collectors = [];
 
     /**
-     * @var \Magento\App\Cache\Type\Config
+     * @var \Magento\Framework\App\Cache\Type\Config
      */
     protected $_configCacheType;
 
     /**
-     * @var \Magento\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
 
@@ -93,14 +70,14 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
     protected $_salesConfig;
 
     /**
-     * @param \Magento\App\Cache\Type\Config $configCacheType
-     * @param \Magento\Logger $logger
+     * @param \Magento\Framework\App\Cache\Type\Config $configCacheType
+     * @param \Psr\Log\LoggerInterface $logger
      * @param \Magento\Sales\Model\Config $salesConfig
-     * @param \Magento\Simplexml\Element $sourceData
+     * @param \Magento\Framework\Simplexml\Element $sourceData
      */
     public function __construct(
-        \Magento\App\Cache\Type\Config $configCacheType,
-        \Magento\Logger $logger,
+        \Magento\Framework\App\Cache\Type\Config $configCacheType,
+        \Psr\Log\LoggerInterface $logger,
         \Magento\Sales\Model\Config $salesConfig,
         $sourceData = null
     ) {
@@ -113,7 +90,7 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
     /**
      * Initialize total models configuration and objects
      *
-     * @return \Magento\Sales\Model\Config\Ordered
+     * @return $this
      */
     protected function _initModels()
     {
@@ -130,11 +107,11 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
     /**
      * Init model class by configuration
      *
-     * @abstract
      * @param string $class
      * @param string $totalCode
      * @param array $totalConfig
      * @return mixed
+     * @abstract
      */
     abstract protected function _initModelInstance($class, $totalCode, $totalConfig);
 
@@ -142,7 +119,7 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
      * Prepare configuration array for total model
      *
      * @param   string $code
-     * @param   \Magento\Core\Model\Config\Element $totalConfig
+     * @param   \Magento\Framework\App\Config\Element $totalConfig
      * @return  array
      */
     protected function _prepareConfigArray($code, $totalConfig)
@@ -154,17 +131,38 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
 
     /**
      * Aggregate before/after information from all items and sort totals based on this data
+     * Invoke simple sorting if the first element contains the "sort_order" key
      *
      * @param array $config
      * @return array
      */
-    protected function _getSortedCollectorCodes(array $config)
+    private function _getSortedCollectorCodes(array $config)
     {
-        // invoke simple sorting if the first element contains the "sort_order" key
         reset($config);
         $element = current($config);
         if (isset($element['sort_order'])) {
-            uasort($config, array($this, '_compareSortOrder'));
+            uasort(
+                $config,
+                // @codingStandardsIgnoreStart
+                /**
+                 * @param array $a
+                 * @param array $b
+                 * @return int
+                 */
+                // @codingStandardsIgnoreEnd
+                function ($a, $b) {
+                    if (!isset($a['sort_order']) || !isset($b['sort_order'])) {
+                        return 0;
+                    }
+                    if ($a['sort_order'] > $b['sort_order']) {
+                        return 1;
+                    } elseif ($a['sort_order'] < $b['sort_order']) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            );
         }
         $result = array_keys($config);
         return $result;
@@ -174,11 +172,11 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
      * Initialize collectors array.
      * Collectors array is array of total models ordered based on configuration settings
      *
-     * @return  \Magento\Sales\Model\Config\Ordered
+     * @return $this
      */
     protected function _initCollectors()
     {
-        $sortedCodes = array();
+        $sortedCodes = [];
         $cachedData = $this->_configCacheType->load($this->_collectorsCacheKey);
         if ($cachedData) {
             $sortedCodes = unserialize($cachedData);
@@ -192,27 +190,5 @@ abstract class Ordered extends \Magento\Core\Model\Config\Base
         }
 
         return $this;
-    }
-
-    /**
-     * Callback that uses sort_order for comparison
-     *
-     * @param array $a
-     * @param array $b
-     * @return int
-     */
-    protected function _compareSortOrder($a, $b)
-    {
-        if (!isset($a['sort_order']) || !isset($b['sort_order'])) {
-            return 0;
-        }
-        if ($a['sort_order'] > $b['sort_order']) {
-            $res = 1;
-        } elseif ($a['sort_order'] < $b['sort_order']) {
-            $res = -1;
-        } else {
-            $res = 0;
-        }
-        return $res;
     }
 }

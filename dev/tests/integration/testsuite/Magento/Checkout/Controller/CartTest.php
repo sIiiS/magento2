@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Checkout
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -30,6 +9,9 @@
  */
 namespace Magento\Checkout\Controller;
 
+/**
+ * @magentoDbIsolation enabled
+ */
 class CartTest extends \Magento\TestFramework\TestCase\AbstractController
 {
     /**
@@ -45,17 +27,15 @@ class CartTest extends \Magento\TestFramework\TestCase\AbstractController
         $quoteItem = $this->_getQuoteItemIdByProductId($session->getQuote(), 1);
         $this->assertNotNull($quoteItem, 'Cannot get quote item for simple product');
 
-        $this->dispatch('checkout/cart/configure/id/' . $quoteItem->getId());
+        $this->dispatch(
+            'checkout/cart/configure/id/' . $quoteItem->getId() . '/product_id/' . $quoteItem->getProduct()->getId()
+        );
         $response = $this->getResponse();
 
-        $this->assertSessionMessages(
-            $this->isEmpty(),
-            \Magento\Message\Factory::ERROR,
-            'Magento\Checkout\Model\Session'
-        );
+        $this->assertSessionMessages($this->isEmpty(), \Magento\Framework\Message\MessageInterface::TYPE_ERROR);
 
         $this->assertSelectCount(
-            'button[type="button"][title="Update Cart"]',
+            'button[type="submit"][title="Update Cart"]',
             1,
             $response->getBody(),
             'Response for simple product doesn\'t contain "Update Cart" button'
@@ -75,17 +55,15 @@ class CartTest extends \Magento\TestFramework\TestCase\AbstractController
         $quoteItem = $this->_getQuoteItemIdByProductId($session->getQuote(), 1);
         $this->assertNotNull($quoteItem, 'Cannot get quote item for simple product with custom option');
 
-        $this->dispatch('checkout/cart/configure/id/' . $quoteItem->getId());
+        $this->dispatch(
+            'checkout/cart/configure/id/' . $quoteItem->getId() . '/product_id/' . $quoteItem->getProduct()->getId()
+        );
         $response = $this->getResponse();
 
-        $this->assertSessionMessages(
-            $this->isEmpty(),
-            \Magento\Message\Factory::ERROR,
-            'Magento\Checkout\Model\Session'
-        );
+        $this->assertSessionMessages($this->isEmpty(), \Magento\Framework\Message\MessageInterface::TYPE_ERROR);
 
         $this->assertSelectCount(
-            'button[type="button"][title="Update Cart"]',
+            'button[type="submit"][title="Update Cart"]',
             1,
             $response->getBody(),
             'Response for simple product with custom option doesn\'t contain "Update Cart" button'
@@ -112,17 +90,15 @@ class CartTest extends \Magento\TestFramework\TestCase\AbstractController
         $quoteItem = $this->_getQuoteItemIdByProductId($session->getQuote(), 3);
         $this->assertNotNull($quoteItem, 'Cannot get quote item for bundle product');
 
-        $this->dispatch('checkout/cart/configure/id/' . $quoteItem->getId());
+        $this->dispatch(
+            'checkout/cart/configure/id/' . $quoteItem->getId() . '/product_id/' . $quoteItem->getProduct()->getId()
+        );
         $response = $this->getResponse();
 
-        $this->assertSessionMessages(
-            $this->isEmpty(),
-            \Magento\Message\Factory::ERROR,
-            'Magento\Checkout\Model\Session'
-        );
+        $this->assertSessionMessages($this->isEmpty(), \Magento\Framework\Message\MessageInterface::TYPE_ERROR);
 
         $this->assertSelectCount(
-            'button[type="button"][title="Update Cart"]',
+            'button[type="submit"][title="Update Cart"]',
             1,
             $response->getBody(),
             'Response for bundle product doesn\'t contain "Update Cart" button'
@@ -142,17 +118,15 @@ class CartTest extends \Magento\TestFramework\TestCase\AbstractController
         $quoteItem = $this->_getQuoteItemIdByProductId($session->getQuote(), 1);
         $this->assertNotNull($quoteItem, 'Cannot get quote item for downloadable product');
 
-        $this->dispatch('checkout/cart/configure/id/' . $quoteItem->getId());
+        $this->dispatch(
+            'checkout/cart/configure/id/' . $quoteItem->getId() . '/product_id/' . $quoteItem->getProduct()->getId()
+        );
         $response = $this->getResponse();
 
-        $this->assertSessionMessages(
-            $this->isEmpty(),
-            \Magento\Message\Factory::ERROR,
-            'Magento\Checkout\Model\Session'
-        );
+        $this->assertSessionMessages($this->isEmpty(), \Magento\Framework\Message\MessageInterface::TYPE_ERROR);
 
         $this->assertSelectCount(
-            'button[type="button"][title="Update Cart"]',
+            'button[type="submit"][title="Update Cart"]',
             1,
             $response->getBody(),
             'Response for downloadable product doesn\'t contain "Update Cart" button'
@@ -167,52 +141,61 @@ class CartTest extends \Magento\TestFramework\TestCase\AbstractController
     }
 
     /**
-     * Test for \Magento\Checkout\Controller\Cart::configureAction() with configurable product
-     *
-     * @magentoDataFixture Magento/Checkout/_files/quote_with_configurable_product.php
+     * @magentoDataFixture Magento/Customer/_files/customer.php
+     * @magentoDataFixture Magento/Checkout/_files/quote_with_simple_product.php
+     * @magentoAppIsolation enabled
      */
-    public function testConfigureActionWithConfigurableProduct()
+    public function testUpdatePostAction()
     {
-        /** @var $session \Magento\Checkout\Model\Session  */
-        $session = $this->_objectManager->create('Magento\Checkout\Model\Session');
+        /** Preconditions */
+        $customerFromFixture = 1;
+        $productId = 1;
+        $originalQuantity = 1;
+        $updatedQuantity = 2;
+        /** @var $checkoutSession \Magento\Checkout\Model\Session  */
+        $checkoutSession = $this->_objectManager->create('Magento\Checkout\Model\Session');
+        $quoteItem = $this->_getQuoteItemIdByProductId($checkoutSession->getQuote(), $productId);
 
-        $quoteItem = $this->_getQuoteItemIdByProductId($session->getQuote(), 1);
-        $this->assertNotNull($quoteItem, 'Cannot get quote item for configurable product');
+        /** @var \Magento\Framework\Data\Form\FormKey $formKey */
+        $formKey = $this->_objectManager->get('Magento\Framework\Data\Form\FormKey');
+        $postData = [
+            'cart' => [$quoteItem->getId() => ['qty' => $updatedQuantity]],
+            'update_cart_action' => 'update_qty',
+            'form_key' => $formKey->getFormKey(),
+        ];
+        $this->getRequest()->setPostValue($postData);
+        /** @var $customerSession \Magento\Customer\Model\Session */
+        $customerSession = $this->_objectManager->create('Magento\Customer\Model\Session');
+        $customerSession->setCustomerId($customerFromFixture);
 
-        $this->dispatch('checkout/cart/configure/id/' . $quoteItem->getId());
-        $response = $this->getResponse();
-
-        $this->assertSessionMessages(
-            $this->isEmpty(),
-            \Magento\Message\Factory::ERROR,
-            'Magento\Checkout\Model\Session'
+        $this->assertNotNull($quoteItem, 'Cannot get quote item for simple product');
+        $this->assertEquals(
+            $originalQuantity,
+            $quoteItem->getQty(),
+            "Precondition failed: invalid quote item quantity"
         );
 
-        $this->assertSelectCount(
-            'button[type="button"][title="Update Cart"]',
-            1,
-            $response->getBody(),
-            'Response for configurable product doesn\'t contain "Update Cart" button'
-        );
+        /** Execute SUT */
+        $this->dispatch('checkout/cart/updatePost');
 
-        $this->assertSelectCount(
-            'select.super-attribute-select',
-            1,
-            $response->getBody(),
-            'Response for configurable product doesn\'t contain select for super attribute'
-        );
+        /** Check results */
+        /** @var \Magento\Quote\Model\Quote $quote */
+        $quote = $this->_objectManager->create('Magento\Quote\Model\Quote');
+        $quote->load($checkoutSession->getQuote()->getId());
+        $quoteItem = $this->_getQuoteItemIdByProductId($quote, 1);
+        $this->assertEquals($updatedQuantity, $quoteItem->getQty(), "Invalid quote item quantity");
     }
 
     /**
-     * Gets \Magento\Sales\Model\Quote\Item from \Magento\Sales\Model\Quote by product id
+     * Gets \Magento\Quote\Model\Quote\Item from \Magento\Quote\Model\Quote by product id
      *
-     * @param \Magento\Sales\Model\Quote $quote
+     * @param \Magento\Quote\Model\Quote $quote
      * @param $productId
-     * @return \Magento\Sales\Model\Quote\Item|null
+     * @return \Magento\Quote\Model\Quote\Item|null
      */
     private function _getQuoteItemIdByProductId($quote, $productId)
     {
-        /** @var $quoteItems \Magento\Sales\Model\Quote\Item[] */
+        /** @var $quoteItems \Magento\Quote\Model\Quote\Item[] */
         $quoteItems = $quote->getAllItems();
         foreach ($quoteItems as $quoteItem) {
             if ($productId == $quoteItem->getProductId()) {

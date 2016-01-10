@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -30,21 +9,33 @@
  */
 namespace Magento\Catalog\Controller;
 
+/**
+ * @magentoAppIsolation enabled
+ */
 class ProductTest extends \Magento\TestFramework\TestCase\AbstractController
 {
+    protected function setUp()
+    {
+        if (defined('HHVM_VERSION')) {
+            $this->markTestSkipped('Randomly fails due to known HHVM bug (DOMText mixed with DOMElement)');
+        }
+        parent::setUp();
+    }
+
     public function assert404NotFound()
     {
         parent::assert404NotFound();
         /** @var $objectManager \Magento\TestFramework\ObjectManager */
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $this->assertNull($objectManager->get('Magento\Core\Model\Registry')->registry('current_product'));
+        $this->assertNull($objectManager->get('Magento\Framework\Registry')->registry('current_product'));
     }
 
     protected function _getProductImageFile()
     {
         /** @var $product \Magento\Catalog\Model\Product */
-        $product = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Catalog\Model\Product');
+        $product = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\Catalog\Model\Product'
+        );
         $product->load(1);
         $images = $product->getMediaGalleryImages()->getItems();
         $image = reset($images);
@@ -61,18 +52,14 @@ class ProductTest extends \Magento\TestFramework\TestCase\AbstractController
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
 
         /** @var $currentProduct \Magento\Catalog\Model\Product */
-        $currentProduct = $objectManager->get('Magento\Core\Model\Registry')->registry('current_product');
+        $currentProduct = $objectManager->get('Magento\Framework\Registry')->registry('current_product');
         $this->assertInstanceOf('Magento\Catalog\Model\Product', $currentProduct);
         $this->assertEquals(1, $currentProduct->getId());
 
-        $lastViewedProductId = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\Catalog\Model\Session')->getLastViewedProductId();
+        $lastViewedProductId = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Catalog\Model\Session'
+        )->getLastViewedProductId();
         $this->assertEquals(1, $lastViewedProductId);
-
-        /* Layout updates */
-        $handles = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\View\LayoutInterface')
-            ->getUpdate()->getHandles();
-        $this->assertContains('catalog_product_view_type_simple', $handles);
 
         $responseBody = $this->getResponse()->getBody();
         /* Product info */
@@ -106,7 +93,6 @@ class ProductTest extends \Magento\TestFramework\TestCase\AbstractController
     public function testViewActionNoProductId()
     {
         $this->dispatch('catalog/product/view/id/');
-
         $this->assert404NotFound();
     }
 

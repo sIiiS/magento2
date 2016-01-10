@@ -1,28 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -35,9 +14,11 @@ namespace Magento\TestFramework\TestCase;
  */
 abstract class AbstractController extends \PHPUnit_Framework_TestCase
 {
-    protected $_runCode     = '';
-    protected $_runScope    = 'store';
-    protected $_runOptions  = array();
+    protected $_runCode = '';
+
+    protected $_runScope = 'store';
+
+    protected $_runOptions = [];
 
     /**
      * @var \Magento\TestFramework\Request
@@ -78,9 +59,8 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
     {
         $this->_assertSessionErrors = false;
         $this->_objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $this->_objectManager->removeSharedInstance('Magento\App\ResponseInterface');
-        $this->_objectManager->removeSharedInstance('Magento\App\RequestInterface');
-
+        $this->_objectManager->removeSharedInstance('Magento\Framework\App\ResponseInterface');
+        $this->_objectManager->removeSharedInstance('Magento\Framework\App\RequestInterface');
     }
 
     protected function tearDown()
@@ -97,7 +77,10 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
     {
         if ($this->_assertSessionErrors) {
             // equalTo() is intentionally used instead of isEmpty() to provide the informative diff
-            $this->assertSessionMessages($this->equalTo(array()), \Magento\Message\Factory::ERROR);
+            $this->assertSessionMessages(
+                $this->equalTo([]),
+                \Magento\Framework\Message\MessageInterface::TYPE_ERROR
+            );
         }
     }
 
@@ -115,12 +98,12 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
     /**
      * Request getter
      *
-     * @return \Magento\App\RequestInterface
+     * @return \Magento\TestFramework\Request
      */
     public function getRequest()
     {
         if (!$this->_request) {
-            $this->_request = $this->_objectManager->get('Magento\App\RequestInterface');
+            $this->_request = $this->_objectManager->get('Magento\Framework\App\RequestInterface');
         }
         return $this->_request;
     }
@@ -128,12 +111,12 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
     /**
      * Response getter
      *
-     * @return \Magento\App\ResponseInterface
+     * @return \Magento\TestFramework\Response
      */
     public function getResponse()
     {
         if (!$this->_response) {
-            $this->_response = $this->_objectManager->get('Magento\App\ResponseInterface');
+            $this->_response = $this->_objectManager->get('Magento\Framework\App\ResponseInterface');
         }
         return $this->_response;
     }
@@ -159,9 +142,9 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         $headerFound = false;
         $headers = $this->getResponse()->getHeaders();
         foreach ($headers as $header) {
-            if ($header['name'] === $headerName) {
+            if ($header->getFieldName() === $headerName) {
                 $headerFound = true;
-                $this->assertRegExp($valueRegex, $header['value']);
+                $this->assertRegExp($valueRegex, $header->getFieldValue());
             }
         }
         if (!$headerFound) {
@@ -186,8 +169,8 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         if ($urlConstraint) {
             $actualUrl = '';
             foreach ($this->getResponse()->getHeaders() as $header) {
-                if ($header['name'] == 'Location') {
-                    $actualUrl = $header['value'];
+                if ($header->getFieldName() == 'Location') {
+                    $actualUrl = $header->getFieldValue();
                     break;
                 }
             }
@@ -198,23 +181,31 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
     /**
      * Assert that actual session messages meet expectations:
      * Usage examples:
-     * $this->assertSessionMessages($this->isEmpty(), \Magento\Message\Factory::ERROR);
+     * $this->assertSessionMessages($this->isEmpty(), \Magento\Framework\Message\MessageInterface::TYPE_ERROR);
      * $this->assertSessionMessages($this->equalTo(array('Entity has been saved.')),
-     * \Magento\Message\Factory::SUCCESS);
+     * \Magento\Framework\Message\MessageInterface::TYPE_SUCCESS);
      *
      * @param \PHPUnit_Framework_Constraint $constraint Constraint to compare actual messages against
-     * @param string|null $messageType Message type filter, one of the constants \Magento\Message\Factory::*
-     * @param string $sessionModel Class of the session model that manages messages
+     * @param string|null $messageType Message type filter,
+     *        one of the constants \Magento\Framework\Message\MessageInterface::*
+     * @param string $messageManagerClass Class of the session model that manages messages
      */
     public function assertSessionMessages(
-        \PHPUnit_Framework_Constraint $constraint, $messageType = null, $sessionModel = 'Magento\Core\Model\Session'
+        \PHPUnit_Framework_Constraint $constraint,
+        $messageType = null,
+        $messageManagerClass = 'Magento\Framework\Message\Manager'
     ) {
         $this->_assertSessionErrors = false;
-        /** @var $session \Magento\Core\Model\Session\AbstractSession */
-        $session = $this->_objectManager->get($sessionModel);
-        $actualMessages = array();
-        /** @var $message \Magento\Message\AbstractMessage */
-        foreach ($session->getMessages()->getItems($messageType) as $message) {
+        /** @var $messageManager \Magento\Framework\Message\ManagerInterface */
+        $messageManager = $this->_objectManager->get($messageManagerClass);
+        /** @var $messages \Magento\Framework\Message\AbstractMessage[] */
+        if ($messageType === null) {
+            $messages = $messageManager->getMessages()->getItems();
+        } else {
+            $messages = $messageManager->getMessages()->getItemsByType($messageType);
+        }
+        $actualMessages = [];
+        foreach ($messages as $message) {
             $actualMessages[] = $message->getText();
         }
         $this->assertThat(

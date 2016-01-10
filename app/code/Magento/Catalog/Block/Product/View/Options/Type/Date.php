@@ -1,30 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Catalog
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Catalog\Block\Product\View\Options\Type;
+
 
 /**
  * Product options text type block
@@ -33,7 +13,6 @@ namespace Magento\Catalog\Block\Product\View\Options\Type;
  */
 class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
 {
-
     /**
      * Fill date and time options with leading zeros or not
      *
@@ -49,27 +28,21 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
     protected $_catalogProductOptionTypeDate;
 
     /**
-     * @param \Magento\View\Element\Template\Context $context
-     * @param \Magento\Tax\Helper\Data $taxData
+     * @param \Magento\Framework\View\Element\Template\Context $context
+     * @param \Magento\Framework\Pricing\Helper\Data $pricingHelper
+     * @param \Magento\Catalog\Helper\Data $catalogData
      * @param \Magento\Catalog\Model\Product\Option\Type\Date $catalogProductOptionTypeDate
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
-        \Magento\Tax\Helper\Data $taxData,
+        \Magento\Framework\View\Element\Template\Context $context,
+        \Magento\Framework\Pricing\Helper\Data $pricingHelper,
+        \Magento\Catalog\Helper\Data $catalogData,
         \Magento\Catalog\Model\Product\Option\Type\Date $catalogProductOptionTypeDate,
-        array $data = array()
+        array $data = []
     ) {
         $this->_catalogProductOptionTypeDate = $catalogProductOptionTypeDate;
-        parent::__construct($context, $taxData, $data);
-    }
-
-    protected function _prepareLayout()
-    {
-        if ($head = $this->getLayout()->getBlock('head')) {
-            $head->setCanLoadCalendarJs(true);
-        }
-        return parent::_prepareLayout();
+        parent::__construct($context, $pricingHelper, $catalogData, $data);
     }
 
     /**
@@ -109,15 +82,23 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
         $yearStart = $this->_catalogProductOptionTypeDate->getYearStart();
         $yearEnd = $this->_catalogProductOptionTypeDate->getYearEnd();
 
-        $calendar = $this->getLayout()
-            ->createBlock('Magento\View\Element\Html\Date')
-            ->setId('options_'.$this->getOption()->getId().'_date')
-            ->setName('options['.$this->getOption()->getId().'][date]')
-            ->setClass('product-custom-option datetime-picker input-text')
-            ->setImage($this->getViewFileUrl('Magento_Core::calendar.gif'))
-            ->setDateFormat($this->_locale->getDateFormat(\Magento\Core\Model\LocaleInterface::FORMAT_TYPE_SHORT))
-            ->setValue($value)
-            ->setYearsRange($yearStart . ':' . $yearEnd);
+        $calendar = $this->getLayout()->createBlock(
+            'Magento\Framework\View\Element\Html\Date'
+        )->setId(
+            'options_' . $this->getOption()->getId() . '_date'
+        )->setName(
+            'options[' . $this->getOption()->getId() . '][date]'
+        )->setClass(
+            'product-custom-option datetime-picker input-text'
+        )->setImage(
+            $this->getViewFileUrl('Magento_Theme::calendar.png')
+        )->setDateFormat(
+            $this->_localeDate->getDateFormat(\IntlDateFormatter::SHORT)
+        )->setValue(
+            $value
+        )->setYearsRange(
+            $yearStart . ':' . $yearEnd
+        );
 
         return $calendar->getHtml();
     }
@@ -140,11 +121,7 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
         $yearEnd = $this->_catalogProductOptionTypeDate->getYearEnd();
         $yearsHtml = $this->_getSelectFromToHtml('year', $yearStart, $yearEnd);
 
-        $translations = array(
-            'd' => $daysHtml,
-            'm' => $monthsHtml,
-            'y' => $yearsHtml
-        );
+        $translations = ['d' => $daysHtml, 'm' => $monthsHtml, 'y' => $yearsHtml];
         return strtr($fieldsOrder, $translations);
     }
 
@@ -162,12 +139,11 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
         } else {
             $hourStart = 1;
             $hourEnd = 12;
-            $dayPartHtml = $this->_getHtmlSelect('day_part')
-                ->setOptions(array(
-                    'am' => __('AM'),
-                    'pm' => __('PM')
-                ))
-                ->getHtml();
+            $dayPartHtml = $this->_getHtmlSelect(
+                'day_part'
+            )->setOptions(
+                ['am' => __('AM'), 'pm' => __('PM')]
+            )->getHtml();
         }
         $hoursHtml = $this->_getSelectFromToHtml('hour', $hourStart, $hourEnd);
         $minutesHtml = $this->_getSelectFromToHtml('minute', 0, 59);
@@ -181,27 +157,24 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
      * @param string $name Id/name of html select element
      * @param int $from  Start position
      * @param int $to    End position
-     * @param int $value Value selected
+     * @param int|null $value Value selected
      * @return string Formatted Html
      */
     protected function _getSelectFromToHtml($name, $from, $to, $value = null)
     {
-        $options = array(
-            array('value' => '', 'label' => '-')
-        );
+        $options = [['value' => '', 'label' => '-']];
         for ($i = $from; $i <= $to; $i++) {
-            $options[] = array('value' => $i, 'label' => $this->_getValueWithLeadingZeros($i));
+            $options[] = ['value' => $i, 'label' => $this->_getValueWithLeadingZeros($i)];
         }
-        return $this->_getHtmlSelect($name, $value)
-            ->setOptions($options)
-            ->getHtml();
+        return $this->_getHtmlSelect($name, $value)->setOptions($options)->getHtml();
     }
 
     /**
      * HTML select element
      *
      * @param string $name Id/name of html select element
-     * @return \Magento\View\Element\Html\Select
+     * @param int|null $value
+     * @return mixed
      */
     protected function _getHtmlSelect($name, $value = null)
     {
@@ -211,22 +184,29 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
 
         // $require = $this->getOption()->getIsRequire() ? ' required-entry' : '';
         $require = '';
-        $select = $this->getLayout()->createBlock('Magento\View\Element\Html\Select')
-            ->setId('options_' . $this->getOption()->getId() . '_' . $name)
-            ->setClass('product-custom-option datetime-picker' . $require)
-            ->setExtraParams()
-            ->setName('options[' . $option->getId() . '][' . $name . ']');
+        $select = $this->getLayout()->createBlock(
+            'Magento\Framework\View\Element\Html\Select'
+        )->setId(
+            'options_' . $this->getOption()->getId() . '_' . $name
+        )->setClass(
+            'product-custom-option admin__control-select datetime-picker' . $require
+        )->setExtraParams()->setName(
+            'options[' . $option->getId() . '][' . $name . ']'
+        );
 
         $extraParams = 'style="width:auto"';
         if (!$this->getSkipJsReloadPrice()) {
             $extraParams .= ' onchange="opConfig.reloadPrice()"';
         }
+        $extraParams .= ' data-role="calendar-dropdown" data-calendar-role="' . $name . '"';
         $select->setExtraParams($extraParams);
 
-        if (is_null($value)) {
-            $value = $this->getProduct()->getPreconfiguredValues()->getData('options/' . $option->getId() . '/' . $name);
+        if ($value === null) {
+            $value = $this->getProduct()->getPreconfiguredValues()->getData(
+                'options/' . $option->getId() . '/' . $name
+            );
         }
-        if (!is_null($value)) {
+        if ($value !== null) {
             $select->setValue($value);
         }
 
@@ -236,14 +216,14 @@ class Date extends \Magento\Catalog\Block\Product\View\Options\AbstractOptions
     /**
      * Add Leading Zeros to number less than 10
      *
-     * @param int
-     * @return string
+     * @param int $value
+     * @return string|int
      */
     protected function _getValueWithLeadingZeros($value)
     {
         if (!$this->_fillLeadingZeros) {
             return $value;
         }
-        return $value < 10 ? '0'.$value : $value;
+        return $value < 10 ? '0' . $value : $value;
     }
 }

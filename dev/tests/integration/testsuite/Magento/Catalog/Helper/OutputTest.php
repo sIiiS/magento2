@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Catalog\Helper;
 
 class OutputTest extends \PHPUnit_Framework_TestCase
@@ -36,8 +14,9 @@ class OutputTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->get('Magento\Catalog\Helper\Output');
+        $this->_helper = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Catalog\Helper\Output'
+        );
     }
 
     /**
@@ -48,36 +27,40 @@ class OutputTest extends \PHPUnit_Framework_TestCase
     {
         // invalid handler
         $this->_helper->addHandler('method', 'handler');
-        $this->assertEquals(array(), $this->_helper->getHandlers('method'));
+        $this->assertEquals([], $this->_helper->getHandlers('method'));
 
         // add one handler
-        $objectOne = new \StdClass;
+        $objectOne = new \StdClass();
         $this->_helper->addHandler('valid', $objectOne);
-        $this->assertSame(array($objectOne), $this->_helper->getHandlers('valid'));
+        $this->assertSame([$objectOne], $this->_helper->getHandlers('valid'));
 
         // add another one
-        $objectTwo = new \StdClass;
+        $objectTwo = new \StdClass();
         $this->_helper->addHandler('valid', $objectTwo);
-        $this->assertSame(array($objectOne, $objectTwo), $this->_helper->getHandlers('valid'));
+        $this->assertSame([$objectOne, $objectTwo], $this->_helper->getHandlers('valid'));
     }
 
     public function testProcess()
     {
         $this->_helper->addHandler('sampleProcessor', $this);
-        $this->assertStringStartsWith(__CLASS__, $this->_helper->process('sampleProcessor', uniqid(), array()));
+        $this->assertStringStartsWith(__CLASS__, $this->_helper->process('sampleProcessor', uniqid(), []));
     }
 
     public function testProductAttribute()
     {
         $this->_testAttribute(
-            'productAttribute', \Magento\Catalog\Model\Product::ENTITY, "&lt;p&gt;line1&lt;/p&gt;<br />\nline2"
+            'productAttribute',
+            \Magento\Catalog\Model\Product::ENTITY,
+            "&lt;p&gt;line1&lt;/p&gt;<br />\nline2"
         );
     }
 
     public function testCategoryAttribute()
     {
         $this->_testAttribute(
-            'categoryAttribute', \Magento\Catalog\Model\Category::ENTITY, "&lt;p&gt;line1&lt;/p&gt;\nline2"
+            'categoryAttribute',
+            \Magento\Catalog\Model\Category::ENTITY,
+            "&lt;p&gt;line1&lt;/p&gt;\nline2"
         );
     }
 
@@ -108,15 +91,20 @@ class OutputTest extends \PHPUnit_Framework_TestCase
     protected function _testAttribute($method, $entityCode, $expectedResult)
     {
         $attributeName = 'description';
-        $attribute = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Eav\Model\Config')
-            ->getAttribute($entityCode, $attributeName);
+        $attribute = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Eav\Model\Config'
+        )->getAttribute(
+            $entityCode,
+            $attributeName
+        );
         $isHtml = $attribute->getIsHtmlAllowedOnFront();
         $isWysiwyg = $attribute->getIsWysiwygEnabled();
         $attribute->setIsHtmlAllowedOnFront(0)->setIsWysiwygEnabled(0);
 
         try {
             $this->assertEquals(
-                $expectedResult, $this->_helper->$method(uniqid(), "<p>line1</p>\nline2", $attributeName)
+                $expectedResult,
+                $this->_helper->{$method}(uniqid(), "<p>line1</p>\nline2", $attributeName)
             );
 
             $attribute->setIsHtmlAllowedOnFront($isHtml)->setIsWysiwygEnabled($isWysiwyg);

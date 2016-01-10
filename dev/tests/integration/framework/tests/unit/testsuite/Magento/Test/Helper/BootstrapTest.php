@@ -1,34 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Test class for \Magento\TestFramework\Helper\Bootstrap.
  */
 namespace Magento\Test\Helper;
+
+use Magento\Framework\App\Bootstrap;
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 class BootstrapTest extends \PHPUnit_Framework_TestCase
 {
@@ -52,27 +34,36 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected $_fixtureInitParams = array(
-        \Magento\App\Dir::PARAM_APP_DIRS => array(
-            \Magento\App\Dir::CONFIG     => __DIR__,
-            \Magento\App\Dir::VAR_DIR    => __DIR__,
-        ),
-    );
+    protected $_fixtureInitParams = [
+        Bootstrap::INIT_PARAM_FILESYSTEM_DIR_PATHS => [
+            DirectoryList::CONFIG => ['path' => __DIR__],
+            DirectoryList::VAR_DIR => ['path' => __DIR__],
+        ],
+    ];
 
     protected function setUp()
     {
         $this->_application = $this->getMock(
-            'Magento\TestFramework\Application', array('getInstallDir', 'getInitParams', 'reinitialize', 'run'),
-            array(), '', false
+            'Magento\TestFramework\Application',
+            ['getTempDir', 'getInitParams', 'reinitialize', 'run'],
+            [],
+            '',
+            false
         );
         $this->_bootstrap = $this->getMock(
-            'Magento\TestFramework\Bootstrap', array('getApplication', 'getDbVendorName'), array(), '', false
+            'Magento\TestFramework\Bootstrap',
+            ['getApplication', 'getDbVendorName'],
+            [],
+            '',
+            false
         );
-        $this->_bootstrap
-            ->expects($this->any())
-            ->method('getApplication')
-            ->will($this->returnValue($this->_application))
-        ;
+        $this->_bootstrap->expects(
+            $this->any()
+        )->method(
+            'getApplication'
+        )->will(
+            $this->returnValue($this->_application)
+        );
         $this->_object = new \Magento\TestFramework\Helper\Bootstrap($this->_bootstrap);
     }
 
@@ -84,7 +75,7 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Helper instance is not defined yet.
      */
     public function testGetInstanceEmptyProhibited()
@@ -108,7 +99,7 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testSetInstanceFirstAllowed
-     * @expectedException \Magento\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Helper instance cannot be redefined.
      */
     public function testSetInstanceChangeProhibited()
@@ -120,7 +111,9 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
     {
         if (!function_exists('xdebug_get_headers')) {
             $this->assertFalse(
-                \Magento\TestFramework\Helper\Bootstrap::canTestHeaders(), 'Expected inability to test headers.');
+                \Magento\TestFramework\Helper\Bootstrap::canTestHeaders(),
+                'Expected inability to test headers.'
+            );
             return;
         }
         $expectedHeader = 'SomeHeader: header-value';
@@ -133,9 +126,11 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
 
         /* Determine whether header-related functions can be in fact called with no error */
         $expectedCanTest = true;
-        set_error_handler(function () use (&$expectedCanTest) {
-            $expectedCanTest = false;
-        });
+        set_error_handler(
+            function () use (&$expectedCanTest) {
+                $expectedCanTest = false;
+            }
+        );
         header($expectedHeader);
         setcookie('SomeCookie', 'cookie-value');
         restore_error_handler();
@@ -149,43 +144,27 @@ class BootstrapTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    public function testGetAppInstallDir()
+    public function testGetAppTempDir()
     {
-        $this->_application
-            ->expects($this->once())
-            ->method('getInstallDir')
-            ->will($this->returnValue(__DIR__))
-        ;
-        $this->assertEquals(__DIR__, $this->_object->getAppInstallDir());
+        $this->_application->expects($this->once())->method('getTempDir')->will($this->returnValue(__DIR__));
+        $this->assertEquals(__DIR__, $this->_object->getAppTempDir());
     }
 
     public function testGetAppInitParams()
     {
-        $this->_application
-            ->expects($this->once())
-            ->method('getInitParams')
-            ->will($this->returnValue($this->_fixtureInitParams))
-        ;
+        $this->_application->expects(
+            $this->once()
+        )->method(
+            'getInitParams'
+        )->will(
+            $this->returnValue($this->_fixtureInitParams)
+        );
         $this->assertEquals($this->_fixtureInitParams, $this->_object->getAppInitParams());
-    }
-
-    public function testGetDbVendorName()
-    {
-        $this->_bootstrap
-            ->expects($this->once())
-            ->method('getDbVendorName')
-            ->will($this->returnValue('mysql'))
-        ;
-        $this->assertEquals('mysql', $this->_object->getDbVendorName());
     }
 
     public function testReinitialize()
     {
-        $this->_application
-            ->expects($this->once())
-            ->method('reinitialize')
-            ->with($this->_fixtureInitParams)
-        ;
+        $this->_application->expects($this->once())->method('reinitialize')->with($this->_fixtureInitParams);
         $this->_object->reinitialize($this->_fixtureInitParams);
     }
 

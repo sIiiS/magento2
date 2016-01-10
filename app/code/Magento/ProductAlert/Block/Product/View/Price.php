@@ -1,29 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_ProductAlert
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\ProductAlert\Block\Product\View;
 
 /**
@@ -34,18 +13,20 @@ class Price extends \Magento\ProductAlert\Block\Product\View
     /**
      * Prepare price info
      *
-     * @return void
+     * @param string $template
+     * @return $this
      */
-    protected function _prepareLayout()
+    public function setTemplate($template)
     {
-        parent::_prepareLayout();
-        if (!$this->_helper->isPriceAlertAllowed()
-            || !$this->_product || false === $this->_product->getCanShowPrice()
+        if (
+            !$this->_helper->isPriceAlertAllowed()
+            || !$this->getProduct() ||
+            false === $this->getProduct()->getCanShowPrice()
         ) {
-            $this->setTemplate('');
-            return;
+            $template = '';
+        } else {
+            $this->setSignupUrl($this->_helper->getSaveUrl('price'));
         }
-        $this->setSignupUrl($this->_helper->getSaveUrl('price'));
+        return parent::setTemplate($template);
     }
-
 }

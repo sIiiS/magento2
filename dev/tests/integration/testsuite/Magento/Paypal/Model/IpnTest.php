@@ -1,30 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Paypal
- * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Paypal\Model;
 
 /**
@@ -33,14 +11,13 @@ namespace Magento\Paypal\Model;
 class IpnTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var \Magento\Paypal\Model\Ipn
+     * @var \Magento\Framework\ObjectManagerInterface
      */
-    protected $_model;
+    protected $_objectManager;
 
     protected function setUp()
     {
-        $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Paypal\Model\Ipn');
+        $this->_objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
     }
 
     /**
@@ -53,66 +30,27 @@ class IpnTest extends \PHPUnit_Framework_TestCase
      */
     public function testProcessIpnRequestExpressCurrency($currencyCode)
     {
-        $this->_testProcessIpnRequestCurrency($currencyCode);
-    }
-
-    /**
-     * @param string $currencyCode
-     * @dataProvider currencyProvider
-     * @magentoDataFixture Magento/Paypal/_files/order_standard.php
-     * @magentoConfigFixture current_store payment/paypal_standard/active 1
-     * @magentoConfigFixture current_store paypal/general/business_account merchant_2012050718_biz@example.com
-     */
-    public function testProcessIpnRequestStandardCurrency($currencyCode)
-    {
-        $this->_testProcessIpnRequestCurrency($currencyCode);
+        $this->_processIpnRequestCurrency($currencyCode);
     }
 
     /**
      * Test processIpnRequest() currency check for paypal_express and paypal_standard payment methods
      *
      * @param string $currencyCode
-     * @dataProvider currencyProvider
      */
-    protected function _testProcessIpnRequestCurrency($currencyCode)
+    protected function _processIpnRequestCurrency($currencyCode)
     {
-        $ipnData = require(__DIR__ . '/../_files/ipn.php');
+        $ipnData = require __DIR__ . '/../_files/ipn.php';
         $ipnData['mc_currency'] = $currencyCode;
 
-        $this->_model->processIpnRequest($ipnData, $this->_createMockedHttpAdapter());
+        /** @var  $ipnFactory \Magento\Paypal\Model\IpnFactory */
+        $ipnFactory = $this->_objectManager->create('Magento\Paypal\Model\IpnFactory');
 
-        $order = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Sales\Model\Order');
+        $model = $ipnFactory->create(['data' => $ipnData, 'curlFactory' => $this->_createMockedHttpAdapter()]);
+        $model->processIpnRequest();
+
+        $order = $this->_objectManager->create('Magento\Sales\Model\Order');
         $order->loadByIncrementId('100000001');
-        $this->_assertOrder($order, $currencyCode);
-    }
-
-    /**
-     * Test processIpnRequest() currency check for recurring profile
-     *
-     * @param string $currencyCode
-     * @dataProvider currencyProvider
-     * @magentoDataFixture Magento/Paypal/_files/recurring_profile.php
-     * @magentoConfigFixture current_store payment/paypal_direct/active 1
-     * @magentoConfigFixture current_store payment/paypal_express/active 1
-     * @magentoConfigFixture current_store paypal/general/merchant_country US
-     * @magentoConfigFixture current_store sales_email/order/enabled 0
-     */
-    public function testProcessIpnRequestRecurringCurrency($currencyCode)
-    {
-        $ipnData = require(__DIR__ . '/../_files/ipn_recurring_profile.php');
-        $ipnData['mc_currency'] = $currencyCode;
-
-        $this->_model->processIpnRequest($ipnData, $this->_createMockedHttpAdapter());
-
-        $recurringProfile = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Sales\Model\Recurring\Profile');
-        $recurringProfile->loadByInternalReferenceId('5-33949e201adc4b03fbbceafccba893ce');
-        $orderIds = $recurringProfile->getChildOrderIds();
-        $this->assertEquals(1, count($orderIds));
-        $order = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-            ->create('Magento\Sales\Model\Order');
-        $order->load($orderIds[0]);
         $this->_assertOrder($order, $currencyCode);
     }
 
@@ -141,29 +79,24 @@ class IpnTest extends \PHPUnit_Framework_TestCase
      */
     public static function currencyProvider()
     {
-        return array(
-            array('USD'),
-            array('EUR'),
-        );
+        return [['USD'], ['EUR']];
     }
 
     /**
      * Mocked HTTP adapter to get VERIFIED PayPal IPN postback result
      *
-     * @return \Magento\HTTP\Adapter\Curl
+     * @return \Magento\Framework\HTTP\Adapter\Curl
      */
     protected function _createMockedHttpAdapter()
     {
-        $adapter = $this->getMock('Magento\HTTP\Adapter\Curl', array('read', 'write'));
+        $factory = $this->getMock('Magento\Framework\HTTP\Adapter\CurlFactory', ['create'], [], '', false);
+        $adapter = $this->getMock('Magento\Framework\HTTP\Adapter\Curl', ['read', 'write'], [], '', false);
 
-        $adapter->expects($this->once())
-            ->method('read')
-            ->with()
-            ->will($this->returnValue("\nVERIFIED"));
+        $adapter->expects($this->once())->method('read')->with()->will($this->returnValue("\nVERIFIED"));
 
-        $adapter->expects($this->once())
-            ->method('write');
+        $adapter->expects($this->once())->method('write');
 
-        return $adapter;
+        $factory->expects($this->once())->method('create')->with()->will($this->returnValue($adapter));
+        return $factory;
     }
 }

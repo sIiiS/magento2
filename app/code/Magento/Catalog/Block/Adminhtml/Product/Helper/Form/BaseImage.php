@@ -1,104 +1,93 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Product form image field helper
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Helper\Form;
 
-class BaseImage extends \Magento\Data\Form\Element\AbstractElement
+/**
+ * Class BaseImage
+ */
+class BaseImage extends \Magento\Framework\Data\Form\Element\AbstractElement
 {
+    /**
+     * Element output template
+     */
+    const ELEMENT_OUTPUT_TEMPLATE = 'Magento_Catalog::product/edit/base_image.phtml';
+
     /**
      * Model Url instance
      *
-     * @var \Magento\Backend\Model\Url
+     * @var \Magento\Backend\Model\UrlInterface
      */
-    protected $_url;
-
-    /**
-     * @var \Magento\Core\Helper\Data
-     */
-    protected $_coreHelper;
+    protected $url;
 
     /**
      * @var \Magento\Catalog\Helper\Data
      */
-    protected $_catalogHelperData;
+    protected $catalogHelperData;
 
     /**
-     * @var \Magento\File\Size
+     * @var \Magento\Framework\File\Size
      */
-    protected $_fileConfig;
+    protected $fileConfig;
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrl;
+    protected $assetRepo;
 
     /**
-     * @param \Magento\Data\Form\Element\Factory $factoryElement
-     * @param \Magento\Data\Form\Element\CollectionFactory $factoryCollection
-     * @param \Magento\Escaper $escaper
-     * @param \Magento\View\UrlFactory $coreViewUrlFactory
+     * @var \Magento\Framework\View\LayoutInterface
+     */
+    protected $layout;
+
+    /**
+     * @param \Magento\Framework\Data\Form\Element\Factory $factoryElement
+     * @param \Magento\Framework\Data\Form\Element\CollectionFactory $factoryCollection
+     * @param \Magento\Framework\Escaper $escaper
+     * @param \Magento\Framework\View\Asset\Repository $assetRepo
      * @param \Magento\Backend\Model\UrlFactory $backendUrlFactory
      * @param \Magento\Catalog\Helper\Data $catalogData
-     * @param \Magento\File\Size $fileConfig
+     * @param \Magento\Framework\File\Size $fileConfig
+     * @param \Magento\Framework\View\LayoutInterface $layout
      * @param array $data
      */
     public function __construct(
-        \Magento\Data\Form\Element\Factory $factoryElement,
-        \Magento\Data\Form\Element\CollectionFactory $factoryCollection,
-        \Magento\Escaper $escaper,
-        \Magento\View\UrlFactory $coreViewUrlFactory,
+        \Magento\Framework\Data\Form\Element\Factory $factoryElement,
+        \Magento\Framework\Data\Form\Element\CollectionFactory $factoryCollection,
+        \Magento\Framework\Escaper $escaper,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
         \Magento\Backend\Model\UrlFactory $backendUrlFactory,
         \Magento\Catalog\Helper\Data $catalogData,
-        \Magento\File\Size $fileConfig,
-        array $data = array()
+        \Magento\Framework\File\Size $fileConfig,
+        \Magento\Framework\View\LayoutInterface $layout,
+        array $data = []
     ) {
         parent::__construct($factoryElement, $factoryCollection, $escaper, $data);
 
-        $this->_viewUrl = $coreViewUrlFactory->create();
-        $this->_url = $backendUrlFactory->create();
-        $this->_catalogHelperData = $catalogData;
-        $this->_fileConfig = $fileConfig;
-        $this->_maxFileSize = $this->_getFileMaxSize();
+        $this->assetRepo = $assetRepo;
+        $this->url = $backendUrlFactory->create();
+        $this->catalogHelperData = $catalogData;
+        $this->fileConfig = $fileConfig;
+        $this->maxFileSize = $this->getFileMaxSize();
+        $this->layout = $layout;
     }
 
     /**
      * Get label
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getLabel()
     {
-        return __('Images');
+        return __('Images and Videos');
     }
 
     /**
@@ -108,59 +97,46 @@ class BaseImage extends \Magento\Data\Form\Element\AbstractElement
      */
     public function getElementHtml()
     {
-        $htmlId = $this->_escaper->escapeHtml($this->getHtmlId());
-        $uploadUrl = $this->_escaper->escapeHtml($this->_getUploadUrl());
-        $spacerImage = $this->_viewUrl->getViewFileUrl('images/spacer.gif');
-        $imagePlaceholderText = __('Click here or drag and drop to add images');
-        $deleteImageText = __('Delete image');
-        $makeBaseText = __('Make Base');
-        $hiddenText = __('Hidden');
-        $imageManagementText = __('Image Management');
-        /** @var $product \Magento\Catalog\Model\Product */
-        $html = <<<HTML
-<div id="{$htmlId}-container" class="images"
-    data-mage-init="{baseImage:{}}"
-    data-max-file-size="{$this->_getFileMaxSize()}"
-    >
-    <div class="image image-placeholder">
-        <input type="file" name="image" data-url="{$uploadUrl}" multiple="multiple" />
-        <img class="spacer" src="{$spacerImage}"/>
-        <p class="image-placeholder-text">{$imagePlaceholderText}</p>
-    </div>
-    <script id="{$htmlId}-template" class="image-template" type="text/x-jquery-tmpl">
-        <div class="image">
-            <img class="spacer" src="{$spacerImage}"/>
-            <img class="product-image" src="\${url}" data-position="\${position}" alt="\${label}" />
-            <div class="actions">
-                <button class="action-delete" data-role="delete-button" title="{$deleteImageText}">
-                    <span>{$deleteImageText}</span>
-                </button>
-                <button class="action-make-base" data-role="make-base-button" title="{$makeBaseText}">
-                    <span>{$makeBaseText}</span>
-                </button>
-                <div class="draggable-handle"></div>
-            </div>
-            <div class="image-label"></div>
-            <div class="image-fade"><span>{$hiddenText}</span></div>
-        </div>
-    </script>
-</div>
-<span class="action-manage-images" data-activate-tab="image-management">
-    <span>{$imageManagementText}</span>
-</span>
-<script>
-    (function($) {
-        'use strict';
+        $block = $this->createElementHtmlOutputBlock();
+        $this->assignBlockVariables($block);
+        return $block->toHtml();
+    }
 
-        $('[data-activate-tab=image-management]')
-            .on('click.toggleImageManagementTab', function() {
-                $('#product_info_tabs_image-management').trigger('click');
-            });
-    })(window.jQuery);
-</script>
+    /**
+     * @param \Magento\Framework\View\Element\Template $block
+     * @return \Magento\Framework\View\Element\Template
+     */
+    public function assignBlockVariables(\Magento\Framework\View\Element\Template $block)
+    {
+        $block->assign([
+            'htmlId' => $this->_escaper->escapeHtml($this->getHtmlId()),
+            'fileMaxSize' => $this->maxFileSize,
+            'uploadUrl' => $this->_escaper->escapeHtml($this->_getUploadUrl()),
+            'spacerImage' => $this->assetRepo->getUrl('images/spacer.gif'),
+            'imagePlaceholderText' => __('Click here or drag and drop to add images.'),
+            'deleteImageText' => __('Delete image'),
+            'makeBaseText' => __('Make Base'),
+            'hiddenText' => __('Hidden'),
+            'imageManagementText' => __('Images and Videos'),
+        ]);
 
-HTML;
-        return $html;
+        return $block;
+    }
+
+
+    /**
+     * @return \Magento\Framework\View\Element\Template
+     */
+    public function createElementHtmlOutputBlock()
+    {
+        /** @var \Magento\Framework\View\Element\Template $block */
+        $block = $this->layout->createBlock(
+            'Magento\Framework\View\Element\Template',
+            'product.details.form.base.image.element'
+        );
+        $block->setTemplate(self::ELEMENT_OUTPUT_TEMPLATE);
+
+        return $block;
     }
 
     /**
@@ -170,7 +146,7 @@ HTML;
      */
     protected function _getUploadUrl()
     {
-        return $this->_url->getUrl('catalog/product_gallery/upload');
+        return $this->url->getUrl('catalog/product_gallery/upload');
     }
 
     /**
@@ -178,8 +154,8 @@ HTML;
      *
      * @return int
      */
-    protected function _getFileMaxSize()
+    protected function getFileMaxSize()
     {
-        return $this->_fileConfig->getMaxFileSize();
+        return $this->fileConfig->getMaxFileSize();
     }
 }

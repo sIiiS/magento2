@@ -1,62 +1,54 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Wishlist
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Wishlist\Model;
+
+use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Wishlist\Model\ResourceModel\Item\CollectionFactory;
+use Magento\Wishlist\Model\ResourceModel\Wishlist as ResourceWishlist;
+use Magento\Wishlist\Model\ResourceModel\Wishlist\Collection;
 
 /**
  * Wishlist model
  *
- * @method \Magento\Wishlist\Model\Resource\Wishlist _getResource()
- * @method \Magento\Wishlist\Model\Resource\Wishlist getResource()
+ * @method \Magento\Wishlist\Model\ResourceModel\Wishlist _getResource()
+ * @method \Magento\Wishlist\Model\ResourceModel\Wishlist getResource()
  * @method int getShared()
  * @method \Magento\Wishlist\Model\Wishlist setShared(int $value)
  * @method string getSharingCode()
  * @method \Magento\Wishlist\Model\Wishlist setSharingCode(string $value)
  * @method string getUpdatedAt()
  * @method \Magento\Wishlist\Model\Wishlist setUpdatedAt(string $value)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Wishlist extends \Magento\Core\Model\AbstractModel
+class Wishlist extends \Magento\Framework\Model\AbstractModel implements \Magento\Framework\DataObject\IdentityInterface
 {
+    /**
+     * Cache tag
+     */
+    const CACHE_TAG = 'wishlist';
+
     /**
      * Prefix of model events names
      *
      * @var string
      */
     protected $_eventPrefix = 'wishlist';
+
     /**
      * Wishlist item collection
      *
-     * @var \Magento\Wishlist\Model\Resource\Item\Collection
+     * @var \Magento\Wishlist\Model\ResourceModel\Item\Collection
      */
     protected $_itemCollection;
 
     /**
      * Store filter for wishlist
      *
-     * @var \Magento\Core\Model\Store
+     * @var \Magento\Store\Model\Store
      */
     protected $_store;
 
@@ -82,24 +74,24 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     protected $_catalogProduct;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\Core\Model\Date
+     * @var \Magento\Framework\Stdlib\DateTime\DateTime
      */
     protected $_date;
 
     /**
-     * @var \Magento\Wishlist\Model\ItemFactory
+     * @var ItemFactory
      */
     protected $_wishlistItemFactory;
 
     /**
-     * @var \Magento\Wishlist\Model\Resource\Item\CollectionFactory
+     * @var CollectionFactory
      */
-    protected $_wishlistCollFactory;
+    protected $_wishlistCollectionFactory;
 
     /**
      * @var \Magento\Catalog\Model\ProductFactory
@@ -107,12 +99,12 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     protected $_productFactory;
 
     /**
-     * @var \Magento\Math\Random
+     * @var \Magento\Framework\Math\Random
      */
     protected $mathRandom;
 
     /**
-     * @var \Magento\Stdlib\DateTime
+     * @var \Magento\Framework\Stdlib\DateTime
      */
     protected $dateTime;
 
@@ -122,38 +114,46 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     protected $_useCurrentWebsite;
 
     /**
-     * @param \Magento\Core\Model\Context $context
-     * @param \Magento\Core\Model\Registry $registry
+     * @var ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Catalog\Helper\Product $catalogProduct
      * @param \Magento\Wishlist\Helper\Data $wishlistData
-     * @param Resource\Wishlist $resource
-     * @param Resource\Wishlist\Collection $resourceCollection
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Core\Model\Date $date
+     * @param ResourceWishlist $resource
+     * @param Collection $resourceCollection
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Stdlib\DateTime\DateTime $date
      * @param ItemFactory $wishlistItemFactory
-     * @param Resource\Item\CollectionFactory $wishlistCollFactory
+     * @param CollectionFactory $wishlistCollectionFactory
      * @param \Magento\Catalog\Model\ProductFactory $productFactory
-     * @param \Magento\Math\Random $mathRandom
-     * @param \Magento\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Math\Random $mathRandom
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param ProductRepositoryInterface $productRepository
      * @param bool $useCurrentWebsite
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Core\Model\Context $context,
-        \Magento\Core\Model\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Catalog\Helper\Product $catalogProduct,
         \Magento\Wishlist\Helper\Data $wishlistData,
-        \Magento\Wishlist\Model\Resource\Wishlist $resource,
-        \Magento\Wishlist\Model\Resource\Wishlist\Collection $resourceCollection,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\Core\Model\Date $date,
-        \Magento\Wishlist\Model\ItemFactory $wishlistItemFactory,
-        \Magento\Wishlist\Model\Resource\Item\CollectionFactory $wishlistCollFactory,
+        ResourceWishlist $resource,
+        Collection $resourceCollection,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Stdlib\DateTime\DateTime $date,
+        ItemFactory $wishlistItemFactory,
+        CollectionFactory $wishlistCollectionFactory,
         \Magento\Catalog\Model\ProductFactory $productFactory,
-        \Magento\Math\Random $mathRandom,
-        \Magento\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Math\Random $mathRandom,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        ProductRepositoryInterface $productRepository,
         $useCurrentWebsite = true,
-        array $data = array()
+        array $data = []
     ) {
         $this->_useCurrentWebsite = $useCurrentWebsite;
         $this->_catalogProduct = $catalogProduct;
@@ -161,31 +161,31 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
         $this->_storeManager = $storeManager;
         $this->_date = $date;
         $this->_wishlistItemFactory = $wishlistItemFactory;
-        $this->_wishlistCollFactory = $wishlistCollFactory;
+        $this->_wishlistCollectionFactory = $wishlistCollectionFactory;
         $this->_productFactory = $productFactory;
         $this->mathRandom = $mathRandom;
         $this->dateTime = $dateTime;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+        $this->productRepository = $productRepository;
     }
 
     /**
-     * Load wishlist by customer
+     * Load wishlist by customer id
      *
-     * @param mixed $customer
+     * @param int $customerId
      * @param bool $create Create wishlist if don't exists
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
-    public function loadByCustomer($customer, $create = false)
+    public function loadByCustomerId($customerId, $create = false)
     {
-        if ($customer instanceof \Magento\Customer\Model\Customer) {
-            $customer = $customer->getId();
+        if ($customerId === null) {
+            return $this;
         }
-
-        $customer = (int) $customer;
+        $customerId = (int)$customerId;
         $customerIdFieldName = $this->_getResource()->getCustomerIdFieldName();
-        $this->_getResource()->load($this, $customer, $customerIdFieldName);
+        $this->_getResource()->load($this, $customerId, $customerIdFieldName);
         if (!$this->getId() && $create) {
-            $this->setCustomerId($customer);
+            $this->setCustomerId($customerId);
             $this->setSharingCode($this->_getSharingRandomCode());
             $this->save();
         }
@@ -210,7 +210,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Set random sharing code
      *
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
     public function generateSharingCode()
     {
@@ -222,7 +222,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * Load by sharing code
      *
      * @param string $code
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
     public function loadByCode($code)
     {
@@ -247,11 +247,11 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Set date of last update for wishlist
      *
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
-    protected function _beforeSave()
+    public function beforeSave()
     {
-        parent::_beforeSave();
+        parent::beforeSave();
         $this->setUpdatedAt($this->_date->gmtDate());
         return $this;
     }
@@ -259,11 +259,11 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Save related items
      *
-     * @return \Magento\Sales\Model\Quote
+     * @return $this
      */
-    protected function _afterSave()
+    public function afterSave()
     {
-        parent::_afterSave();
+        parent::afterSave();
 
         if (null !== $this->_itemCollection) {
             $this->getItemCollection()->save();
@@ -278,7 +278,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * @param   int $qty
      * @param   bool $forciblySetQty
      *
-     * @return  \Magento\Wishlist\Model\Item
+     * @return  Item
      */
     protected function _addCatalogProduct(\Magento\Catalog\Model\Product $product, $qty = 1, $forciblySetQty = false)
     {
@@ -293,21 +293,20 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
         if ($item === null) {
             $storeId = $product->hasWishlistStoreId() ? $product->getWishlistStoreId() : $this->getStore()->getId();
             $item = $this->_wishlistItemFactory->create();
-            $item->setProductId($product->getId())
-                ->setWishlistId($this->getId())
-                ->setAddedAt($this->dateTime->now())
-                ->setStoreId($storeId)
-                ->setOptions($product->getCustomOptions())
-                ->setProduct($product)
-                ->setQty($qty)
-                ->save();
+            $item->setProductId($product->getId());
+            $item->setWishlistId($this->getId());
+            $item->setAddedAt((new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT));
+            $item->setStoreId($storeId);
+            $item->setOptions($product->getCustomOptions());
+            $item->setProduct($product);
+            $item->setQty($qty);
+            $item->save();
             if ($item->getId()) {
                 $this->getItemCollection()->addItem($item);
             }
         } else {
             $qty = $forciblySetQty ? $qty : $item->getQty() + $qty;
-            $item->setQty($qty)
-                ->save();
+            $item->setQty($qty)->save();
         }
 
         $this->addItem($item);
@@ -318,15 +317,16 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Retrieve wishlist item collection
      *
-     * @return \Magento\Wishlist\Model\Resource\Item\Collection
+     * @return \Magento\Wishlist\Model\ResourceModel\Item\Collection
      */
     public function getItemCollection()
     {
-        if (is_null($this->_itemCollection)) {
-            $this->_itemCollection = $this->_wishlistCollFactory->create()
-                ->addWishlistFilter($this)
-                ->addStoreFilter($this->getSharedStoreIds())
-                ->setVisibilityFilter();
+        if ($this->_itemCollection === null) {
+            $this->_itemCollection = $this->_wishlistCollectionFactory->create()->addWishlistFilter(
+                $this
+            )->addStoreFilter(
+                $this->getSharedStoreIds()
+            )->setVisibilityFilter();
         }
 
         return $this->_itemCollection;
@@ -336,7 +336,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * Retrieve wishlist item collection
      *
      * @param int $itemId
-     * @return \Magento\Wishlist\Model\Item
+     * @return false|Item
      */
     public function getItem($itemId)
     {
@@ -349,15 +349,15 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Adding item to wishlist
      *
-     * @param   \Magento\Wishlist\Model\Item $item
-     * @return  \Magento\Wishlist\Model\Wishlist
+     * @param   Item $item
+     * @return  $this
      */
-    public function addItem(\Magento\Wishlist\Model\Item $item)
+    public function addItem(Item $item)
     {
         $item->setWishlist($this);
         if (!$item->getId()) {
             $this->getItemCollection()->addItem($item);
-            $this->_eventManager->dispatch('wishlist_add_item', array('item' => $item));
+            $this->_eventManager->dispatch('wishlist_add_item', ['item' => $item]);
         }
         return $this;
     }
@@ -367,9 +367,12 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * Returns new item or string on error.
      *
      * @param int|\Magento\Catalog\Model\Product $product
-     * @param mixed $buyRequest
+     * @param \Magento\Framework\DataObject|array|string|null $buyRequest
      * @param bool $forciblySetQty
-     * @return \Magento\Wishlist\Model\Item|string
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @return Item|string
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function addNewItem($product, $buyRequest = null, $forciblySetQty = false)
     {
@@ -383,31 +386,32 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
             // Maybe force some store by wishlist internal properties
             $storeId = $product->hasWishlistStoreId() ? $product->getWishlistStoreId() : $product->getStoreId();
         } else {
-            $productId = (int) $product;
-            if ($buyRequest->getStoreId()) {
+            $productId = (int)$product;
+            if (isset($buyRequest) && $buyRequest->getStoreId()) {
                 $storeId = $buyRequest->getStoreId();
             } else {
                 $storeId = $this->_storeManager->getStore()->getId();
             }
         }
 
-        /* @var $product \Magento\Catalog\Model\Product */
-        $product = $this->_productFactory->create()
-            ->setStoreId($storeId)
-            ->load($productId);
-
-        if ($buyRequest instanceof \Magento\Object) {
-            $_buyRequest = $buyRequest;
-        } elseif (is_string($buyRequest)) {
-            $_buyRequest = new \Magento\Object(unserialize($buyRequest));
-        } elseif (is_array($buyRequest)) {
-            $_buyRequest = new \Magento\Object($buyRequest);
-        } else {
-            $_buyRequest = new \Magento\Object();
+        try {
+            $product = $this->productRepository->getById($productId, false, $storeId);
+        } catch (NoSuchEntityException $e) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('Cannot specify product.'));
         }
 
-        $cartCandidates = $product->getTypeInstance()
-            ->processConfiguration($_buyRequest, $product);
+        if ($buyRequest instanceof \Magento\Framework\DataObject) {
+            $_buyRequest = $buyRequest;
+        } elseif (is_string($buyRequest)) {
+            $_buyRequest = new \Magento\Framework\DataObject(unserialize($buyRequest));
+        } elseif (is_array($buyRequest)) {
+            $_buyRequest = new \Magento\Framework\DataObject($buyRequest);
+        } else {
+            $_buyRequest = new \Magento\Framework\DataObject();
+        }
+
+        /* @var $product \Magento\Catalog\Model\Product */
+        $cartCandidates = $product->getTypeInstance()->processConfiguration($_buyRequest, clone $product);
 
         /**
          * Error message
@@ -420,11 +424,11 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
          * If prepare process return one object
          */
         if (!is_array($cartCandidates)) {
-            $cartCandidates = array($cartCandidates);
+            $cartCandidates = [$cartCandidates];
         }
 
-        $errors = array();
-        $items = array();
+        $errors = [];
+        $items = [];
 
         foreach ($cartCandidates as $candidate) {
             if ($candidate->getParentProductId()) {
@@ -432,7 +436,8 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
             }
             $candidate->setWishlistStoreId($storeId);
 
-            $qty = $candidate->getQty() ? $candidate->getQty() : 1; // No null values as qty. Convert zero to 1.
+            $qty = $candidate->getQty() ? $candidate->getQty() : 1;
+            // No null values as qty. Convert zero to 1.
             $item = $this->_addCatalogProduct($candidate, $qty, $forciblySetQty);
             $items[] = $item;
 
@@ -442,7 +447,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
             }
         }
 
-        $this->_eventManager->dispatch('wishlist_product_add_after', array('items' => $items));
+        $this->_eventManager->dispatch('wishlist_product_add_after', ['items' => $items]);
 
         return $item;
     }
@@ -451,7 +456,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * Set customer id
      *
      * @param int $customerId
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
     public function setCustomerId($customerId)
     {
@@ -475,10 +480,10 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      */
     public function getDataForSave()
     {
-        $data = array();
+        $data = [];
         $data[$this->_getResource()->getCustomerIdFieldName()] = $this->getCustomerId();
-        $data['shared']      = (int) $this->getShared();
-        $data['sharing_code']= $this->getSharingCode();
+        $data['shared'] = (int)$this->getShared();
+        $data['sharing_code'] = $this->getSharingCode();
         return $data;
     }
 
@@ -489,11 +494,11 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      */
     public function getSharedStoreIds()
     {
-        if (is_null($this->_storeIds) || !is_array($this->_storeIds)) {
+        if ($this->_storeIds === null || !is_array($this->_storeIds)) {
             if ($this->_useCurrentWebsite) {
                 $this->_storeIds = $this->getStore()->getWebsite()->getStoreIds();
             } else {
-                $_storeIds = array();
+                $_storeIds = [];
                 $stores = $this->_storeManager->getStores();
                 foreach ($stores as $store) {
                     $_storeIds[] = $store->getId();
@@ -508,22 +513,22 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
      * Set shared store ids
      *
      * @param array $storeIds
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return $this
      */
     public function setSharedStoreIds($storeIds)
     {
-        $this->_storeIds = (array) $storeIds;
+        $this->_storeIds = (array)$storeIds;
         return $this;
     }
 
     /**
      * Retrieve wishlist store object
      *
-     * @return \Magento\Core\Model\Store
+     * @return \Magento\Store\Model\Store
      */
     public function getStore()
     {
-        if (is_null($this->_store)) {
+        if ($this->_store === null) {
             $this->setStore($this->_storeManager->getStore());
         }
         return $this->_store;
@@ -532,8 +537,8 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
     /**
      * Set wishlist store
      *
-     * @param \Magento\Core\Model\Store $store
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @param \Magento\Store\Model\Store $store
+     * @return $this
      */
     public function setStore($store)
     {
@@ -577,47 +582,49 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
         return $customerId == $this->getCustomerId();
     }
 
-
     /**
      * Update wishlist Item and set data from request
      *
-     * $params sets how current item configuration must be taken into account and additional options.
+     * The $params sets how current item configuration must be taken into account and additional options.
      * It's passed to \Magento\Catalog\Helper\Product->addParamsToBuyRequest() to compose resulting buyRequest.
      *
      * Basically it can hold
-     * - 'current_config', \Magento\Object or array - current buyRequest that configures product in this item,
-     *   used to restore currently attached files
+     * - 'current_config', \Magento\Framework\DataObject or array - current buyRequest
+     *   that configures product in this item, used to restore currently attached files
      * - 'files_prefix': string[a-z0-9_] - prefix that was added at frontend to names of file options (file inputs),
      * so they won't intersect with other submitted options
      *
      * For more options see \Magento\Catalog\Helper\Product->addParamsToBuyRequest()
      *
-     * @param int|\Magento\Wishlist\Model\Item $itemId
-     * @param \Magento\Object $buyRequest
-     * @param null|array|\Magento\Object $params
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @param int|Item $itemId
+     * @param \Magento\Framework\DataObject $buyRequest
+     * @param null|array|\Magento\Framework\DataObject $params
+     * @return $this
+     * @throws \Magento\Framework\Exception\LocalizedException
      *
      * @see \Magento\Catalog\Helper\Product::addParamsToBuyRequest()
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function updateItem($itemId, $buyRequest, $params = null)
     {
         $item = null;
-        if ($itemId instanceof \Magento\Wishlist\Model\Item) {
+        if ($itemId instanceof Item) {
             $item = $itemId;
         } else {
             $item = $this->getItem((int)$itemId);
         }
         if (!$item) {
-            throw new \Magento\Core\Exception(__('We can\'t specify a wish list item.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('We can\'t specify a wish list item.'));
         }
 
         $product = $item->getProduct();
         $productId = $product->getId();
         if ($productId) {
             if (!$params) {
-                $params = new \Magento\Object();
-            } else if (is_array($params)) {
-                $params = new \Magento\Object($params);
+                $params = new \Magento\Framework\DataObject();
+            } elseif (is_array($params)) {
+                $params = new \Magento\Framework\DataObject($params);
             }
             $params->setCurrentConfig($item->getBuyRequest());
             $buyRequest = $this->_catalogProduct->addParamsToBuyRequest($buyRequest, $params);
@@ -626,10 +633,11 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
             $items = $this->getItemCollection();
             $isForceSetQuantity = true;
             foreach ($items as $_item) {
-                /* @var $_item \Magento\Wishlist\Model\Item */
-                if ($_item->getProductId() == $product->getId()
-                    && $_item->representProduct($product)
-                    && $_item->getId() != $item->getId()) {
+                /* @var $_item Item */
+                if ($_item->getProductId() == $product->getId() && $_item->representProduct(
+                    $product
+                ) && $_item->getId() != $item->getId()
+                ) {
                     // We do not add new wishlist item, but updating the existing one
                     $isForceSetQuantity = false;
                 }
@@ -639,7 +647,7 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
              * Error message
              */
             if (is_string($resultItem)) {
-                throw new \Magento\Core\Exception(__($resultItem));
+                throw new \Magento\Framework\Exception\LocalizedException(__($resultItem));
             }
 
             if ($resultItem->getId() != $itemId) {
@@ -653,19 +661,22 @@ class Wishlist extends \Magento\Core\Model\AbstractModel
                 $resultItem->setOrigData('qty', 0);
             }
         } else {
-            throw new \Magento\Core\Exception(__('The product does not exist.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('The product does not exist.'));
         }
         return $this;
     }
 
     /**
-     * Save wishlist.
+     * Return unique ID(s) for each object in system
      *
-     * @return \Magento\Wishlist\Model\Wishlist
+     * @return array
      */
-    public function save()
+    public function getIdentities()
     {
-        $this->_hasDataChanges = true;
-        return parent::save();
+        $identities = [];
+        if ($this->getId()) {
+            $identities = [self::CACHE_TAG . '_' . $this->getId()];
+        }
+        return $identities;
     }
 }

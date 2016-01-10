@@ -1,61 +1,44 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_Cms
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+namespace Magento\Cms\Block\Adminhtml\Page\Edit\Tab;
 
 /**
  * Cms page edit form main tab
  */
-namespace Magento\Cms\Block\Adminhtml\Page\Edit\Tab;
-
-class Main
-    extends \Magento\Backend\Block\Widget\Form\Generic
-    implements \Magento\Backend\Block\Widget\Tab\TabInterface
+class Main extends \Magento\Backend\Block\Widget\Form\Generic implements \Magento\Backend\Block\Widget\Tab\TabInterface
 {
     /**
-     * @var \Magento\Core\Model\System\Store
+     * @var \Magento\Store\Model\System\Store
      */
     protected $_systemStore;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Core\Model\Registry $registry
-     * @param \Magento\Data\FormFactory $formFactory
-     * @param \Magento\Core\Model\System\Store $systemStore
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Data\FormFactory $formFactory
+     * @param \Magento\Store\Model\System\Store $systemStore
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Core\Model\Registry $registry,
-        \Magento\Data\FormFactory $formFactory,
-        \Magento\Core\Model\System\Store $systemStore,
-        array $data = array()
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Data\FormFactory $formFactory,
+        \Magento\Store\Model\System\Store $systemStore,
+        array $data = []
     ) {
         $this->_systemStore = $systemStore;
         parent::__construct($context, $registry, $formFactory, $data);
     }
 
+    /**
+     * Prepare form
+     *
+     * @return $this
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     */
     protected function _prepareForm()
     {
         /* @var $model \Magento\Cms\Model\Page */
@@ -70,74 +53,88 @@ class Main
             $isElementDisabled = true;
         }
 
-
-        /** @var \Magento\Data\Form $form */
-        $form   = $this->_formFactory->create();
+        /** @var \Magento\Framework\Data\Form $form */
+        $form = $this->_formFactory->create();
 
         $form->setHtmlIdPrefix('page_');
 
-        $fieldset = $form->addFieldset('base_fieldset', array('legend'=>__('Page Information')));
+        $fieldset = $form->addFieldset('base_fieldset', ['legend' => __('Page Information')]);
 
-        if ($model->getPageId()) {
-            $fieldset->addField('page_id', 'hidden', array(
-                'name' => 'page_id',
-            ));
+        if ($model->getId()) {
+            $fieldset->addField('page_id', 'hidden', ['name' => 'page_id']);
         }
 
-        $fieldset->addField('title', 'text', array(
-            'name'      => 'title',
-            'label'     => __('Page Title'),
-            'title'     => __('Page Title'),
-            'required'  => true,
-            'disabled'  => $isElementDisabled
-        ));
+        $fieldset->addField(
+            'title',
+            'text',
+            [
+                'name' => 'title',
+                'label' => __('Page Title'),
+                'title' => __('Page Title'),
+                'required' => true,
+                'disabled' => $isElementDisabled
+            ]
+        );
 
-        $fieldset->addField('identifier', 'text', array(
-            'name'      => 'identifier',
-            'label'     => __('URL Key'),
-            'title'     => __('URL Key'),
-            'required'  => true,
-            'class'     => 'validate-identifier',
-            'note'      => __('Relative to Web Site Base URL'),
-            'disabled'  => $isElementDisabled
-        ));
+        $fieldset->addField(
+            'identifier',
+            'text',
+            [
+                'name' => 'identifier',
+                'label' => __('URL Key'),
+                'title' => __('URL Key'),
+                'class' => 'validate-identifier',
+                'note' => __('Relative to Web Site Base URL'),
+                'disabled' => $isElementDisabled
+            ]
+        );
 
         /**
          * Check is single store mode
          */
         if (!$this->_storeManager->isSingleStoreMode()) {
-            $field = $fieldset->addField('store_id', 'multiselect', array(
-                'name'      => 'stores[]',
-                'label'     => __('Store View'),
-                'title'     => __('Store View'),
-                'required'  => true,
-                'values'    => $this->_systemStore->getStoreValuesForForm(false, true),
-                'disabled'  => $isElementDisabled,
-            ));
-            $renderer = $this->getLayout()
-                ->createBlock('Magento\Backend\Block\Store\Switcher\Form\Renderer\Fieldset\Element');
+            $field = $fieldset->addField(
+                'store_id',
+                'multiselect',
+                [
+                    'name' => 'stores[]',
+                    'label' => __('Store View'),
+                    'title' => __('Store View'),
+                    'required' => true,
+                    'values' => $this->_systemStore->getStoreValuesForForm(false, true),
+                    'disabled' => $isElementDisabled
+                ]
+            );
+            $renderer = $this->getLayout()->createBlock(
+                'Magento\Backend\Block\Store\Switcher\Form\Renderer\Fieldset\Element'
+            );
             $field->setRenderer($renderer);
         } else {
-            $fieldset->addField('store_id', 'hidden', array(
-                'name'      => 'stores[]',
-                'value'     => $this->_storeManager->getStore(true)->getId()
-            ));
+            $fieldset->addField(
+                'store_id',
+                'hidden',
+                ['name' => 'stores[]', 'value' => $this->_storeManager->getStore(true)->getId()]
+            );
             $model->setStoreId($this->_storeManager->getStore(true)->getId());
         }
 
-        $fieldset->addField('is_active', 'select', array(
-            'label'     => __('Status'),
-            'title'     => __('Page Status'),
-            'name'      => 'is_active',
-            'required'  => true,
-            'options'   => $model->getAvailableStatuses(),
-            'disabled'  => $isElementDisabled,
-        ));
+        $fieldset->addField(
+            'is_active',
+            'select',
+            [
+                'label' => __('Status'),
+                'title' => __('Page Status'),
+                'name' => 'is_active',
+                'required' => true,
+                'options' => $model->getAvailableStatuses(),
+                'disabled' => $isElementDisabled
+            ]
+        );
         if (!$model->getId()) {
             $model->setData('is_active', $isElementDisabled ? '0' : '1');
         }
 
-        $this->_eventManager->dispatch('adminhtml_cms_page_edit_tab_main_prepare_form', array('form' => $form));
+        $this->_eventManager->dispatch('adminhtml_cms_page_edit_tab_main_prepare_form', ['form' => $form]);
 
         $form->setValues($model->getData());
         $this->setForm($form);
@@ -148,7 +145,7 @@ class Main
     /**
      * Prepare label for tab
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getTabLabel()
     {
@@ -158,7 +155,7 @@ class Main
     /**
      * Prepare title for tab
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
      */
     public function getTabTitle()
     {
@@ -166,9 +163,7 @@ class Main
     }
 
     /**
-     * Returns status flag about this tab can be shown or not
-     *
-     * @return true
+     * {@inheritdoc}
      */
     public function canShowTab()
     {
@@ -176,9 +171,7 @@ class Main
     }
 
     /**
-     * Returns status flag about this tab hidden or not
-     *
-     * @return true
+     * {@inheritdoc}
      */
     public function isHidden()
     {

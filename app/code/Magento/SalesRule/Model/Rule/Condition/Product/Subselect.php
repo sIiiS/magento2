@@ -1,34 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @category    Magento
- * @package     Magento_SalesRule
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
-
 namespace Magento\SalesRule\Model\Rule\Condition\Product;
 
-class Subselect
-    extends \Magento\SalesRule\Model\Rule\Condition\Product\Combine
+class Subselect extends \Magento\SalesRule\Model\Rule\Condition\Product\Combine
 {
     /**
      * @param \Magento\Rule\Model\Condition\Context $context
@@ -38,14 +15,15 @@ class Subselect
     public function __construct(
         \Magento\Rule\Model\Condition\Context $context,
         \Magento\SalesRule\Model\Rule\Condition\Product $ruleConditionProduct,
-        array $data = array()
+        array $data = []
     ) {
         parent::__construct($context, $ruleConditionProduct, $data);
-        $this->setType('Magento\SalesRule\Model\Rule\Condition\Product\Subselect')
-            ->setValue(null);
+        $this->setType('Magento\SalesRule\Model\Rule\Condition\Product\Subselect')->setValue(null);
     }
 
     /**
+     * Load array
+     *
      * @param array $arr
      * @param string $key
      * @return $this
@@ -59,31 +37,41 @@ class Subselect
     }
 
     /**
+     * Return as xml
+     *
      * @param string $containerKey
      * @param string $itemKey
      * @return string
      */
     public function asXml($containerKey = 'conditions', $itemKey = 'condition')
     {
-        $xml = '<attribute>' . $this->getAttribute() . '</attribute>'
-            . '<operator>' . $this->getOperator() . '</operator>'
-            . parent::asXml($containerKey, $itemKey);
+        $xml = '<attribute>' .
+            $this->getAttribute() .
+            '</attribute>' .
+            '<operator>' .
+            $this->getOperator() .
+            '</operator>' .
+            parent::asXml(
+                $containerKey,
+                $itemKey
+            );
         return $xml;
     }
 
     /**
+     * Load attribute options
+     *
      * @return $this
      */
     public function loadAttributeOptions()
     {
-        $this->setAttributeOption(array(
-            'qty'  => __('total quantity'),
-            'base_row_total'  => __('total amount'),
-        ));
+        $this->setAttributeOption(['qty' => __('total quantity'), 'base_row_total' => __('total amount')]);
         return $this;
     }
 
     /**
+     * Load value options
+     *
      * @return $this
      */
     public function loadValueOptions()
@@ -92,24 +80,30 @@ class Subselect
     }
 
     /**
+     * Load operator options
+     *
      * @return $this
      */
     public function loadOperatorOptions()
     {
-        $this->setOperatorOption(array(
-            '=='  => __('is'),
-            '!='  => __('is not'),
-            '>='  => __('equals or greater than'),
-            '<='  => __('equals or less than'),
-            '>'   => __('greater than'),
-            '<'   => __('less than'),
-            '()'  => __('is one of'),
-            '!()' => __('is not one of'),
-        ));
+        $this->setOperatorOption(
+            [
+                '==' => __('is'),
+                '!=' => __('is not'),
+                '>=' => __('equals or greater than'),
+                '<=' => __('equals or less than'),
+                '>' => __('greater than'),
+                '<' => __('less than'),
+                '()' => __('is one of'),
+                '!()' => __('is not one of'),
+            ]
+        );
         return $this;
     }
 
     /**
+     * Get value element type
+     *
      * @return string
      */
     public function getValueElementType()
@@ -118,6 +112,8 @@ class Subselect
     }
 
     /**
+     * Return as html
+     *
      * @return string
      */
     public function asHtml()
@@ -136,19 +132,19 @@ class Subselect
     }
 
     /**
-     * validate
+     * Validate
      *
-     * @param \Magento\Object $object Quote
-     * @return boolean
+     * @param \Magento\Framework\Model\AbstractModel $model
+     * @return bool
      */
-    public function validate(\Magento\Object $object)
+    public function validate(\Magento\Framework\Model\AbstractModel $model)
     {
         if (!$this->getConditions()) {
             return false;
         }
         $attr = $this->getAttribute();
         $total = 0;
-        foreach ($object->getQuote()->getAllVisibleItems() as $item) {
+        foreach ($model->getQuote()->getAllVisibleItems() as $item) {
             if (parent::validate($item)) {
                 $total += $item->getData($attr);
             }
